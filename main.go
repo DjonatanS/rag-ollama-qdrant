@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/DjonatanS/rag-ollama-qdrant-go/pgk/loader"
 	"github.com/DjonatanS/rag-ollama-qdrant-go/pgk/store"
@@ -13,13 +14,22 @@ import (
 	"github.com/tmc/langchaingo/chains"
 	"github.com/tmc/langchaingo/embeddings"
 	"github.com/tmc/langchaingo/llms/ollama"
+	"github.com/tmc/langchaingo/schema"
 )
+
+func GetLLM(llmName string) (*ollama.LLM, error) {
+	llm, err := ollama.New(ollama.WithModel(llmName))
+	if err != nil {
+		return nil, err
+	}
+	return llm, nil
+}
 
 func main() {
 	ctx := context.Background()
 
 	// Configure Ollama for embeddings
-	embedLLM, err := ollama.New(ollama.WithModel("nomic-embed-text"))
+	embedLLM, err := GetLLM("nomic-embed-text")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -29,7 +39,7 @@ func main() {
 	}
 
 	// Configure Ollama for text generation
-	llm, err := ollama.New(ollama.WithModel("deepseek-r1:8b"))
+	llm, err := GetLLM("deepseek-r1:8b")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,12 +57,35 @@ func main() {
 		// Continue anyway, it might not exist
 	}
 
-	// Load PDF
-	docs, err := loader.LoadAndSplitPDF(ctx, "data/pdfs/DSA_Artigo.pdf")
+	// Load all PDFs from the data/pdfs directory
+	pdfDir := "data/pdfs"
+	pdfFiles, err := filepath.Glob(filepath.Join(pdfDir, "*.pdf"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to list PDF files: %v", err)
 	}
-	log.Printf("Loaded %d documents from PDF", len(docs))
+
+	if len(pdfFiles) == 0 {
+		log.Fatalf("No PDF files found in %s", pdfDir)
+	}
+
+	var allDocs []schema.Document
+	log.Printf("Found %d PDF files to load...", len(pdfFiles))
+
+	for _, pdfPath := range pdfFiles {
+		log.Printf("Loading PDF: %s", pdfPath)
+		docs, err := loader.LoadAndSplitPDF(ctx, pdfPath)
+		if err != nil {
+			log.Printf("Warning: Failed to load/split PDF %s: %v. Skipping.", pdfPath, err)
+			continue // Skip this file and continue with the next
+		}
+		allDocs = append(allDocs, docs...)
+		log.Printf("Loaded %d documents from %s", len(docs), pdfPath)
+	}
+
+	if len(allDocs) == 0 {
+		log.Fatal("No documents were successfully loaded from any PDF files.")
+	}
+	log.Printf("Total loaded %d documents from all PDFs", len(allDocs))
 
 	// Configure Qdrant with our custom implementation
 	vectorStore, err := store.NewQdrantStore(ctx, qdrantURL, collectionName, embedder)
@@ -61,7 +94,7 @@ func main() {
 	}
 
 	// Add documents
-	ids, err := vectorStore.AddDocuments(ctx, docs)
+	ids, err := vectorStore.AddDocuments(ctx, allDocs) // Use allDocs here
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,7 +104,7 @@ func main() {
 	retrievalQA := chains.NewRetrievalQAFromLLM(llm, vectorStore)
 
 	// Query
-	question := "O que a pesquisa recente da Salesforce descobriu?"
+	question := "How to Using  Go  to  Monitor  Container Performance"
 	result, err := vectorStore.GetRelevantDocuments(ctx, question)
 	if err != nil {
 		log.Fatal(err)

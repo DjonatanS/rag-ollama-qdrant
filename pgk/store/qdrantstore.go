@@ -272,7 +272,7 @@ func (s *QdrantStore) SimilaritySearch(ctx context.Context, query string, numDoc
 	}
 
 	// Log para debug
-	fmt.Printf("Payload de busca: %s\n", string(jsonData))
+	//fmt.Printf("Payload de busca: %s\n", string(jsonData))
 
 	// Fazer requisição de busca
 	url := fmt.Sprintf("%s/collections/%s/points/search", s.baseURL, s.collectionName)
