@@ -4,60 +4,195 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RAG com Ollama e Qdrant</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>RAG com Ollama e Qdrant</h1>
-            <p>Recuperação de Informações Aumentada por Geração</p>
-        </header>
-
-        <main>
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="query">Consultar</button>
-                <button class="tab-btn" data-tab="ingest">Ingerir Documentos</button>
-            </div>
-
-            <div class="tab-content active" id="query-tab">
-                <h2>Faça uma pergunta</h2>
-                <div class="form-group">
-                    <form id="query-form">
-                        <textarea id="question" placeholder="Digite sua pergunta aqui..." rows="3"></textarea>
-                        <button type="submit" class="btn">Enviar</button>
+    <div class="app-container">
+        <!-- Auth Container - Visible when not logged in -->
+        <div id="auth-container" class="auth-container">
+            <div class="auth-box">
+                <h1>RAG com Ollama e Qdrant</h1>
+                <p class="tagline">Recuperação de Informações Aumentada por Geração</p>
+                
+                <div class="auth-tabs">
+                    <button class="auth-tab-btn active" data-auth="login">Login</button>
+                    <button class="auth-tab-btn" data-auth="register">Registrar</button>
+                </div>
+                
+                <!-- Login Form -->
+                <div id="login-form-container" class="auth-form-container active">
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="login-email">Email</label>
+                            <input type="email" id="login-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Senha</label>
+                            <input type="password" id="login-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-full">Login</button>
                     </form>
                 </div>
-                <div class="response-container">
-                    <h3>Resposta:</h3>
-                    <div id="answer" class="answer"></div>
-                    <div id="loading" class="loading hidden">Gerando resposta...</div>
-                </div>
-            </div>
-
-            <div class="tab-content" id="ingest-tab">
-                <h2>Ingestão de Documentos</h2>
-                <div class="upload-container">
-                    <form id="upload-form" enctype="multipart/form-data">
-                        <div class="drop-zone">
-                            <span class="drop-zone-prompt">Arraste arquivos PDF aqui ou clique para selecionar</span>
-                            <input type="file" name="pdfs" id="file-input" accept=".pdf" multiple class="drop-zone-input">
+                
+                <!-- Register Form -->
+                <div id="register-form-container" class="auth-form-container">
+                    <form id="register-form">
+                        <div class="form-group">
+                            <label for="register-name">Nome</label>
+                            <input type="text" id="register-name" required>
                         </div>
-                        <div class="options">
-                            <label>
-                                <input type="checkbox" id="create-per-pdf">
-                                Criar coleção por PDF
-                            </label>
+                        <div class="form-group">
+                            <label for="register-email">Email</label>
+                            <input type="email" id="register-email" required>
                         </div>
-                        <button type="submit" class="btn">Processar Documentos</button>
+                        <div class="form-group">
+                            <label for="register-password">Senha</label>
+                            <input type="password" id="register-password" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-confirm">Confirmar Senha</label>
+                            <input type="password" id="register-confirm" required>
+                        </div>
+                        <button type="submit" class="btn btn-full">Registrar</button>
                     </form>
                 </div>
-                <div id="ingest-status" class="status"></div>
+                
+                <div id="auth-status" class="status"></div>
             </div>
-        </main>
+        </div>
 
-        <footer>
-            <p>Desenvolvido com Clean Architecture, Go, Ollama e Qdrant</p>
-        </footer>
+        <!-- Main App Container - Visible after login -->
+        <div id="main-container" class="main-container hidden">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h2>RAG Assistant</h2>
+                </div>
+                
+                <nav class="sidebar-nav">
+                    <ul>
+                        <li>
+                            <a href="#" class="nav-item active" data-page="query">
+                                <i class="fas fa-comments"></i>
+                                <span>Chat</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-item" data-page="ingest">
+                                <i class="fas fa-file-upload"></i>
+                                <span>Upload Documentos</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-item" data-page="profile">
+                                <i class="fas fa-user"></i>
+                                <span>Meu Perfil</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                
+                <div class="sidebar-footer">
+                    <span id="user-display"></span>
+                    <button id="logout-btn" class="btn-small">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Page: Query/Chat -->
+                <div id="query-page" class="page-content active">
+                    <header class="page-header">
+                        <h2>Chat com Documentos</h2>
+                    </header>
+                    <div class="page-body">
+                        <div class="form-group">
+                            <form id="query-form">
+                                <textarea id="question" placeholder="Digite sua pergunta aqui..." rows="3"></textarea>
+                                <button type="submit" class="btn">Enviar</button>
+                            </form>
+                        </div>
+                        <div class="response-container">
+                            <h3>Resposta:</h3>
+                            <div id="answer" class="answer"></div>
+                            <div id="loading" class="loading hidden">Gerando resposta...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Ingest Documents -->
+                <div id="ingest-page" class="page-content">
+                    <header class="page-header">
+                        <h2>Ingestão de Documentos</h2>
+                    </header>
+                    <div class="page-body">
+                        <div class="upload-container">
+                            <form id="upload-form" enctype="multipart/form-data">
+                                <div class="drop-zone">
+                                    <span class="drop-zone-prompt">Arraste arquivos PDF aqui ou clique para selecionar</span>
+                                    <input type="file" name="pdfs" id="file-input" accept=".pdf" multiple class="drop-zone-input">
+                                </div>
+                                <div class="options">
+                                    <label>
+                                        <input type="checkbox" id="create-per-pdf">
+                                        Criar coleção por PDF
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn">Processar Documentos</button>
+                            </form>
+                        </div>
+                        <div id="ingest-status" class="status"></div>
+                    </div>
+                </div>
+
+                <!-- Page: User Profile -->
+                <div id="profile-page" class="page-content">
+                    <header class="page-header">
+                        <h2>Meu Perfil</h2>
+                    </header>
+                    <div class="page-body">
+                        <div class="profile-info">
+                            <h3>Informações Pessoais</h3>
+                            <form id="profile-form">
+                                <div class="form-group">
+                                    <label for="profile-name">Nome</label>
+                                    <input type="text" id="profile-name">
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-email">Email</label>
+                                    <input type="email" id="profile-email" disabled>
+                                </div>
+                                <button type="submit" class="btn">Atualizar Perfil</button>
+                            </form>
+                        </div>
+                        
+                        <div class="password-section">
+                            <h3>Alterar Senha</h3>
+                            <form id="password-form">
+                                <div class="form-group">
+                                    <label for="current-password">Senha Atual</label>
+                                    <input type="password" id="current-password" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="new-password">Nova Senha</label>
+                                    <input type="password" id="new-password" required minlength="6">
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirm-password">Confirmar Nova Senha</label>
+                                    <input type="password" id="confirm-password" required>
+                                </div>
+                                <button type="submit" class="btn">Alterar Senha</button>
+                            </form>
+                        </div>
+                        
+                        <div id="profile-status" class="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="/static/js/main.js"></script>
