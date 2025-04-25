@@ -9,12 +9,10 @@ import (
 	"github.com/tmc/langchaingo/llms/ollama"
 )
 
-// OllamaEmbedder implements the usecase.EmbeddingGenerator interface using Ollama.
 type OllamaEmbedder struct {
 	embedder embeddings.Embedder
 }
 
-// NewOllamaEmbedder creates a new OllamaEmbedder.
 func NewOllamaEmbedder(modelName string) (*OllamaEmbedder, error) {
 	llm, err := ollama.New(ollama.WithModel(modelName))
 	if err != nil {
@@ -27,7 +25,6 @@ func NewOllamaEmbedder(modelName string) (*OllamaEmbedder, error) {
 	return &OllamaEmbedder{embedder: embedder}, nil
 }
 
-// EmbedDocuments generates embeddings for multiple documents.
 func (e *OllamaEmbedder) EmbedDocuments(ctx context.Context, texts []string) ([][]float32, error) {
 	embeddings, err := e.embedder.EmbedDocuments(ctx, texts)
 	if err != nil {
@@ -36,7 +33,6 @@ func (e *OllamaEmbedder) EmbedDocuments(ctx context.Context, texts []string) ([]
 	return embeddings, nil
 }
 
-// EmbedQuery generates an embedding for a single query.
 func (e *OllamaEmbedder) EmbedQuery(ctx context.Context, text string) ([]float32, error) {
 	embedding, err := e.embedder.EmbedQuery(ctx, text)
 	if err != nil {
@@ -45,5 +41,4 @@ func (e *OllamaEmbedder) EmbedQuery(ctx context.Context, text string) ([]float32
 	return embedding, nil
 }
 
-// Ensure OllamaEmbedder implements the interface
 var _ usecase.EmbeddingGenerator = (*OllamaEmbedder)(nil)

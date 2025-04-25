@@ -10,15 +10,12 @@ import (
 	"github.com/tmc/langchaingo/schema"
 )
 
-// PDFLoader implements the usecase.DocumentLoader interface for PDF files.
 type PDFLoader struct{}
 
-// NewPDFLoader creates a new PDFLoader.
 func NewPDFLoader() *PDFLoader {
 	return &PDFLoader{}
 }
 
-// Load reads a PDF file from the given path and returns its content as documents.
 func (l *PDFLoader) Load(ctx context.Context, source string) ([]schema.Document, error) {
 	f, err := os.Open(source)
 	if err != nil {
