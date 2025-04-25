@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Query form
     const queryForm = document.getElementById('query-form');
     const questionInput = document.getElementById('question');
-    const streamMode = document.getElementById('stream-mode');
     const answerDiv = document.getElementById('answer');
     const loadingDiv = document.getElementById('loading');
 
@@ -32,55 +31,28 @@ document.addEventListener('DOMContentLoaded', () => {
         answerDiv.textContent = '';
         loadingDiv.classList.remove('hidden');
 
-        if (streamMode.checked) {
-            // Streaming mode
-            try {
-                const eventSource = new EventSource(`/api/stream?question=${encodeURIComponent(question)}`);
-                
-                eventSource.onmessage = (event) => {
-                    const chunk = event.data;
-                    if (chunk === "[DONE]") {
-                        eventSource.close();
-                        loadingDiv.classList.add('hidden');
-                        return;
-                    }
-                    answerDiv.textContent += chunk;
-                };
-
-                eventSource.onerror = () => {
+        // Sempre usar streaming para consultas
+        try {
+            const eventSource = new EventSource(`/api/stream?question=${encodeURIComponent(question)}`);
+            eventSource.onmessage = (event) => {
+                const chunk = event.data;
+                if (chunk === "[DONE]") {
                     eventSource.close();
                     loadingDiv.classList.add('hidden');
-                    if (!answerDiv.textContent) {
-                        answerDiv.textContent = "Erro ao conectar com o servidor.";
-                    }
-                };
-            } catch (error) {
-                loadingDiv.classList.add('hidden');
-                answerDiv.textContent = `Erro: ${error.message}`;
-            }
-        } else {
-            // Standard mode
-            try {
-                const response = await fetch('/api/query', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ question }),
-                });
-
-                const data = await response.json();
-                loadingDiv.classList.add('hidden');
-
-                if (response.ok) {
-                    answerDiv.textContent = data.answer;
-                } else {
-                    answerDiv.textContent = `Erro: ${data.error || 'Falha ao processar a consulta.'}`;
+                    return;
                 }
-            } catch (error) {
+                answerDiv.textContent += chunk;
+            };
+            eventSource.onerror = () => {
+                eventSource.close();
                 loadingDiv.classList.add('hidden');
-                answerDiv.textContent = `Erro: ${error.message}`;
-            }
+                if (!answerDiv.textContent) {
+                    answerDiv.textContent = "Erro ao conectar com o servidor.";
+                }
+            };
+        } catch (error) {
+            loadingDiv.classList.add('hidden');
+            answerDiv.textContent = `Erro: ${error.message}`;
         }
     });
 

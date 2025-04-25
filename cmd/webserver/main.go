@@ -51,16 +51,25 @@ func main() {
 		log.Fatalf("Falha ao criar LLM: %v", err)
 	}
 
-	// Instanciar o adaptador do Qdrant (vector store)
+	// Instanciar o adaptador do Qdrant para armazenamento de vetores
 	vectorStore, err := vectorstore.NewQdrantVectorStore(qdrantURL, embedder)
 	if err != nil {
 		log.Fatalf("Falha ao criar adaptador do Qdrant: %v", err)
 	}
 
-	// Ensure the collection exists
+	// Garantir coleção padrão para ingestão inicial
 	if err := vectorStore.EnsureCollection(ctx, collectionName, vectorSize); err != nil {
-		log.Fatalf("Falha ao garantir coleção: %v", err)
+		log.Fatalf("Falha ao garantir coleção '%s': %v", collectionName, err)
 	}
+   
+	// Instanciar retriever para consultas multi-coleção
+	retriever, err := vectorstore.NewQdrantRetriever(qdrantURL, embedder)
+	if err != nil {
+		log.Fatalf("Falha ao criar retriever Qdrant: %v", err)
+	}
+
+	// Instanciar caso de uso de consulta (usa retriever multi-coleção)
+	queryUseCase := usecase.NewQueryUseCase(embedder, retriever, queryLLM)
 
 	// Configurar rotas
 	mux := http.NewServeMux()
@@ -72,35 +81,6 @@ func main() {
 	// Rota principal (página inicial)
 	mux.HandleFunc("/", serveIndex)
 
-	// API para consultas padrão
-	mux.HandleFunc("/api/query", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
-			return
-		}
-
-		var req struct {
-			Question string `json:"question"`
-		}
-
-		err := json.NewDecoder(r.Body).Decode(&req)
-		if err != nil {
-			http.Error(w, "Falha ao decodificar requisição", http.StatusBadRequest)
-			return
-		}
-
-		// Criar o caso de uso de consulta
-		queryUseCase := usecase.NewQueryUseCase(embedder, vectorStore, queryLLM)
-		answer, _, err := queryUseCase.Execute(ctx, req.Question)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"answer": answer})
-	})
 
 	// API para consultas com streaming
 	mux.HandleFunc("/api/stream", func(w http.ResponseWriter, r *http.Request) {
@@ -115,8 +95,12 @@ func main() {
 			return
 		}
 
-		// Criar o caso de uso de consulta
-		queryUseCase := usecase.NewQueryUseCase(embedder, vectorStore, queryLLM)
+       	// Listar coleções disponíveis para consulta
+       	collections, err := retriever.ListCollections(ctx)
+       	if err != nil {
+       		http.Error(w, fmt.Sprintf("Falha ao listar coleções: %v", err), http.StatusInternalServerError)
+       		return
+       	}
 
 		// Configurar o stream SSE
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -136,13 +120,13 @@ func main() {
 			flusher.Flush()
 		}
 
-		// Executar a query com streaming
-		err := queryUseCase.ExecuteStreaming(ctx, question, streamCallback)
-		if err != nil {
-			// Enviar o erro como evento
-			fmt.Fprintf(w, "data: Erro: %s\n\n", err.Error())
-			flusher.Flush()
-		}
+       // Executar a query com streaming em todas as coleções
+       _, err = queryUseCase.ExecuteWithStreamingMultiCollection(ctx, question, collections, 2, streamCallback)
+       if err != nil {
+           // Enviar o erro como evento
+           fmt.Fprintf(w, "data: Erro: %s\n\n", err.Error())
+           flusher.Flush()
+       }
 
 		// Sinalizar o fim do stream
 		fmt.Fprintf(w, "data: [DONE]\n\n")
