@@ -1,86 +1,155 @@
 # RAG com Ollama e Qdrant em Go
 
-Este projeto demonstra a implementação de um sistema RAG (Retrieval-Augmented Generation) utilizando Go, Ollama (para modelos de linguagem locais) e Qdrant (como banco de dados vetorial). O sistema carrega um documento PDF, o processa, armazena seus embeddings vetoriais no Qdrant e, em seguida, utiliza um modelo de linguagem para responder a perguntas com base no conteúdo do PDF recuperado.
+Este projeto implementa um sistema RAG (Retrieval-Augmented Generation) utilizando Go, Ollama para modelos de linguagem locais e Qdrant como banco de dados vetorial. A arquitetura segue princípios de Clean Architecture para garantir uma separação clara de responsabilidades.
+
+![RAG Architecture](https://miro.medium.com/max/1400/1*Z0sOxEyR6j_4VqaJNMaJvg.jpeg)
 
 ## Funcionalidades
 
-*   Carrega e divide documentos PDF em partes menores (chunks).
-*   Gera embeddings vetoriais para os chunks de texto usando um modelo Ollama (ex: `nomic-embed-text`).
-*   Armazena os embeddings e o texto original no Qdrant.
-*   Utiliza um modelo de linguagem generativo Ollama (ex: `deepseek-r1:8b`) para gerar respostas com base nos documentos recuperados do Qdrant.
-*   Implementa uma cadeia RAG utilizando a biblioteca LangchainGo.
-*   Interage diretamente com a API REST do Qdrant para gerenciamento de coleções (criação, verificação) e busca vetorial.
-*   Inclui lógica para deletar e recriar a coleção Qdrant para garantir a consistência da dimensão vetorial ao trocar modelos de embedding.
+- Carrega e divide documentos PDF em partes menores (chunks)
+- Gera embeddings para cada chunk utilizando modelos Ollama
+- Armazena embeddings e texto em um banco de dados vetorial Qdrant
+- Busca documentos relevantes para uma pergunta (query)
+- Utiliza LLM para gerar respostas baseadas nos documentos recuperados
 
 ## Pré-requisitos
 
-*   **Go:** Versão 1.18 ou superior. ([https://go.dev/doc/install](https://go.dev/doc/install))
-*   **Ollama:** Instalado e em execução. ([https://ollama.com/](https://ollama.com/))
-*   **Qdrant:** Instalado e em execução (ex: via Docker). ([https://qdrant.tech/documentation/guides/installation/](https://qdrant.tech/documentation/guides/installation/))
+- **Go** (versão 1.18 ou superior) - [Download Go](https://go.dev/doc/install)
+- **Ollama** - [Download Ollama](https://ollama.com)
+- **Qdrant** - [Docker Qdrant](https://qdrant.tech/documentation/guides/installation/)
 
-## Configuração Inicial
+## Instalação 
 
-1.  **Ollama:**
-    *   Certifique-se de que o serviço Ollama esteja rodando.
-    *   Baixe os modelos necessários (os modelos padrão usados no projeto são `nomic-embed-text` para embeddings e `deepseek-r1:8b` para geração):
-        ```bash
-        ollama pull nomic-embed-text
-        ollama pull deepseek-r1:8b
-        ```
+### 1. Clone o repositório
 
-2.  **Qdrant:**
-    *   Inicie o Qdrant. Se estiver usando Docker (recomendado para desenvolvimento):
-        ```bash
-        docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
-        ```
-    *   O projeto espera que a API REST do Qdrant esteja acessível em `http://localhost:6333`.
+```bash
+git clone https://github.com/DjonatanS/rag-ollama-qdrant-go
+cd rag-ollama-qdrant-go
+```
 
-## Instalação das Dependências
-
-Navegue até o diretório raiz do projeto e execute:
+### 2. Instale as dependências
 
 ```bash
 go mod tidy
 ```
 
-## Como Usar
+### 3. Prepare a instalação do Ollama
 
-1.  **Prepare o Documento:** Coloque o arquivo PDF que deseja processar na pasta `data/pdfs/`. O projeto está configurado por padrão para usar `data/pdfs/DSA_Artigo.pdf`.
-2.  **Execute o Programa:**
-    ```bash
-    go run main.go
-    ```
+Baixe e instale o Ollama em: [https://ollama.com/download](https://ollama.com/download)
 
-O programa executará os seguintes passos:
-*   Tentará deletar a coleção Qdrant existente (`my_collection`) para garantir que a dimensão vetorial esteja correta.
-*   Carregará e dividirá o PDF especificado.
-*   Criará uma nova coleção no Qdrant com a dimensão vetorial apropriada para o modelo de embedding (`nomic-embed-text` -> 768).
-*   Gerará embeddings para cada chunk do PDF e os armazenará no Qdrant.
-*   Executará uma pergunta de exemplo (`Qual a habilidade mais importante na era da Inteligência Artificial?`).
-*   Recuperará os documentos relevantes do Qdrant com base na pergunta.
-*   Usará o modelo de linguagem generativo para gerar uma resposta com base nos documentos recuperados.
-*   Imprimirá os documentos relevantes encontrados e a resposta final no console.
+Após a instalação, baixe os modelos necessários:
+
+```bash
+# Modelo para gerar embeddings (vetor 768-dimensional)
+ollama pull nomic-embed-text
+
+# Modelo para geração de texto (você pode trocar por outros modelos suportados)
+ollama pull deepseek-r1:8b
+```
+
+### 4. Inicie o Qdrant
+
+A maneira mais fácil é executar via Docker:
+
+```bash
+docker run -d -p 6333:6333 -p 6334:6334 \
+    -v $(pwd)/qdrant_storage:/qdrant/storage \
+    qdrant/qdrant
+```
+
+Verifique se está funcionando acessando: http://localhost:6333/dashboard
+
+## Estrutura do Projeto
+
+O projeto segue os princípios de Clean Architecture:
+
+```
+/cmd
+  /ragapp           # Ponto de entrada do aplicativo
+/internal
+  /usecase          # Casos de uso e interfaces (regras de negócios)
+  /infra            # Implementações concretas (adaptadores)
+    /llm            # Adaptadores para modelos de linguagem
+    /loader         # Adaptadores para carregamento de documentos
+    /splitter       # Adaptadores para divisão de texto
+    /vectorstore    # Adaptadores para bancos de dados vetoriais
+/data
+  /pdfs             # Arquivos PDF para processamento
+```
+
+## Como usar
+
+### 1. Prepare seus documentos
+
+Coloque seus arquivos PDF na pasta `data/pdfs/`. O aplicativo processará todos os arquivos PDF encontrados neste diretório.
+
+### 2. Compile e execute o aplicativo
+
+```bash
+go build -o ragapp cmd/ragapp/main.go
+./ragapp "Sua pergunta aqui"
+```
+
+Ou execute diretamente:
+
+```bash
+go run cmd/ragapp/main.go "Sua pergunta aqui"
+```
+
+Se nenhuma pergunta for fornecida, será usada uma pergunta padrão.
+
+### 3. Configuração
+
+As principais configurações estão definidas no arquivo `cmd/ragapp/main.go` como constantes:
+
+| Parâmetro | Descrição | Valor Padrão |
+|-----------|-----------|--------------|
+| pdfDir | Diretório dos PDFs | "data/pdfs" |
+| pdfPattern | Padrão para encontrar PDFs | "*.pdf" |
+| qdrantURL | URL do servidor Qdrant | "http://localhost:6333" |
+| collectionName | Nome da coleção no Qdrant | "my_collection" |
+| embedModel | Modelo para embeddings | "nomic-embed-text" |
+| genModel | Modelo para geração de texto | "deepseek-r1:8b" |
+| vectorSize | Dimensão dos vetores | 768 |
+| chunkSize | Tamanho dos chunks de texto | 1000 |
+| chunkOverlap | Sobreposição entre chunks | 100 |
+
+Para alterar estas configurações, edite o arquivo `cmd/ragapp/main.go`.
 
 ## Como Funciona
 
-1.  **Carregamento (Loader):** O `pgk/loader/pdfloader.go` utiliza bibliotecas Go para ler o conteúdo do arquivo PDF e dividi-lo em chunks de texto menores e gerenciáveis.
-2.  **Embedding:** O `main.go` configura um cliente Ollama para o modelo de embedding (`nomic-embed-text`). Para cada chunk de texto, ele chama o cliente Ollama para gerar um vetor de embedding.
-3.  **Armazenamento (Store):** O `pgk/store/qdrantstore.go` implementa a lógica para interagir com a API REST do Qdrant:
-    *   `ensureCollectionExists`: Verifica se a coleção existe. Se não, chama `createCollection`.
-    *   `createCollection`: Envia uma requisição `PUT` para criar a coleção com a configuração de vetor correta (nome `default`, dimensão 768, distância `Cosine`).
-    *   `AddDocuments`: Recebe os documentos (chunks), gera seus embeddings usando o `embedder` passado, e envia uma requisição `PUT` para `/points` para inserir/atualizar os pontos (vetores + payload) na coleção.
-    *   `SimilaritySearch`: Recebe uma consulta (pergunta), gera seu embedding, e envia uma requisição `POST` para `/points/search` para encontrar os vetores mais similares na coleção, retornando os documentos correspondentes.
-4.  **Recuperação (Retrieval):** Em `main.go`, após adicionar os documentos, uma pergunta é definida. O método `vectorStore.GetRelevantDocuments` (que chama `SimilaritySearch`) é usado para encontrar os chunks de texto mais relevantes para a pergunta no Qdrant.
-5.  **Geração (Generation):** O `main.go` configura um segundo cliente Ollama para o modelo generativo (`deepseek-r1:8b`). A função `chains.NewRetrievalQAFromLLM` do LangchainGo é usada para criar uma cadeia que:
-    *   Recebe a pergunta.
-    *   Usa o `vectorStore` (nosso `QdrantStore`) para recuperar documentos relevantes.
-    *   Passa a pergunta e os documentos recuperados como contexto para o LLM (`deepseek-r1:8b`).
-    *   Retorna a resposta gerada pelo LLM.
+1. **Fase de Ingestão**:
+   - Os arquivos PDF são carregados e divididos em chunks menores
+   - Cada chunk é convertido em um embedding usando o modelo Ollama
+   - Os embeddings e o texto são armazenados no Qdrant
 
-## Configuração e Customização
+2. **Fase de Consulta**:
+   - A pergunta é convertida em embedding
+   - O Qdrant é consultado para encontrar documentos com embeddings similares
+   - Os documentos relevantes são enviados ao LLM junto com a pergunta
+   - O LLM gera uma resposta baseada nos documentos e na pergunta
 
-*   **Modelos Ollama:** Os nomes dos modelos são definidos em `main.go` nas chamadas `ollama.New()`. Você pode trocá-los por outros modelos disponíveis no seu Ollama. **Importante:** Se trocar o modelo de embedding (`nomic-embed-text`), certifique-se de atualizar a dimensão do vetor (`Size: 768`) na função `createCollection` em `pgk/store/qdrantstore.go` para corresponder à dimensão do novo modelo.
-*   **Endpoint Qdrant:** A URL base (`http://localhost:6333`) e o nome da coleção (`my_collection`) são definidos como variáveis em `main.go`.
-*   **Arquivo PDF:** O caminho para o arquivo PDF a ser carregado é definido na chamada `loader.LoadAndSplitPDF` em `main.go`.
-*   **Pergunta:** A pergunta de exemplo é definida na variável `question` em `main.go`.
-*   **Número de Documentos Recuperados:** O número de documentos a serem recuperados na busca por similaridade é definido no método `GetRelevantDocuments` (atualmente fixo em 4 dentro da chamada para `SimilaritySearch`).
+## Arquitetura do Código
+
+### Camada de Interface de Usuário (UI)
+- `cmd/ragapp/main.go`: Ponto de entrada, configuração e fluxo principal
+
+### Camada de Casos de Uso
+- `internal/usecase/interfaces.go`: Define interfaces para as operações principais
+- `internal/usecase/ingestion_usecase.go`: Orquestra o processo de ingestão de documentos
+- `internal/usecase/query_usecase.go`: Orquestra o processo de consulta e geração de resposta
+
+### Camada de Infraestrutura
+- `internal/infra/loader/pdf_loader.go`: Implementa carregamento de PDFs
+- `internal/infra/splitter/recursive_splitter.go`: Implementa divisão de texto
+- `internal/infra/llm/ollama_embedder.go`: Implementa geração de embeddings com Ollama
+- `internal/infra/llm/ollama_llm.go`: Implementa geração de texto com Ollama
+- `internal/infra/vectorstore/qdrant_adapter.go`: Implementa armazenamento e recuperação com Qdrant
+
+## Contribuições
+
+Sinta-se à vontade para criar issues, enviar PRs ou sugerir melhorias para este projeto.
+
+## Licença
+
+Este projeto é licenciado sob a licença MIT.
