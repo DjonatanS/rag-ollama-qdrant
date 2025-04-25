@@ -12,6 +12,7 @@ This project implements a RAG (Retrieval-Augmented Generation) system using Go, 
 - Retrieves relevant documents for a query
 - Uses LLM to generate answers based on retrieved documents
 - Supports streaming responses for a more interactive experience
+- Renders AI internal reasoning wrapped in `<think>` tags as expandable/collapsible sections to keep answers organized
 - Allows per-PDF collection creation for more targeted retrieval
 
 ## Prerequisites
