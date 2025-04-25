@@ -28,6 +28,7 @@ type VectorStore interface {
 
 type LLM interface {
 	Call(ctx context.Context, prompt string, options ...func(map[string]interface{})) (string, error) // Simplified Call interface
+	CallWithStreaming(ctx context.Context, prompt string, callbackFn func(chunk string), options ...func(map[string]interface{})) error
 }
 
 type Retriever interface {
