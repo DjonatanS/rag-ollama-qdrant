@@ -15,7 +15,6 @@ import (
 	"github.com/tmc/langchaingo/vectorstores/qdrant"
 )
 
-// QdrantStore é um wrapper para o Store do pacote qdrant
 type QdrantStore struct {
 	store          qdrant.Store
 	embedder       embeddings.Embedder
@@ -23,7 +22,6 @@ type QdrantStore struct {
 	collectionName string
 }
 
-// Estrutura correta para criar uma coleção no Qdrant
 type CreateCollectionRequest struct {
 	Vectors map[string]VectorParams `json:"vectors"`
 }
@@ -33,7 +31,6 @@ type VectorParams struct {
 	Distance string `json:"distance"`
 }
 
-// Estruturas para inserção de pontos
 type UpsertPointsRequest struct {
 	Points []Point `json:"points"`
 	Wait   bool    `json:"wait"`
@@ -45,7 +42,6 @@ type Point struct {
 	Payload map[string]interface{} `json:"payload"`
 }
 
-// NewQdrantStore cria uma nova instância do QdrantStore
 func NewQdrantStore(ctx context.Context, urlStr, collectionName string, embedder embeddings.Embedder) (*QdrantStore, error) {
 	qdrantURL, err := url.Parse(urlStr)
 	if err != nil {

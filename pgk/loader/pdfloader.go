@@ -16,7 +16,6 @@ func LoadAndSplitPDF(ctx context.Context, path string) ([]schema.Document, error
 	}
 	defer f.Close()
 
-	// Get the file stats to determine its size
 	fileInfo, err := f.Stat()
 	if err != nil {
 		return nil, err
@@ -30,6 +29,5 @@ func LoadAndSplitPDF(ctx context.Context, path string) ([]schema.Document, error
 
 	splitter := textsplitter.NewRecursiveCharacter(textsplitter.WithChunkSize(1000), textsplitter.WithChunkOverlap(100))
 
-	// Usando a função correta do pacote textsplitter em vez de chamar como método
 	return textsplitter.SplitDocuments(splitter, docs)
 }

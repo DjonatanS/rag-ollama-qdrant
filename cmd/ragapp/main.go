@@ -71,7 +71,7 @@ func main() {
 	// 2. Querying
 	log.Println("--- Starting Query Phase ---")
 	// Example query from command line arguments or default
-	question := "How to Using Go to Monitor Container Performance"
+	question := "Qual a habilidade mais importante na era da Inteligência Artificial?"
 	if len(os.Args) > 1 {
 		question = os.Args[1] // Use first argument as question if provided
 	}
