@@ -1,55 +1,55 @@
-# RAG com Ollama e Qdrant em Go
+# RAG with Ollama and Qdrant in Go
 
-Este projeto implementa um sistema RAG (Retrieval-Augmented Generation) utilizando Go, Ollama para modelos de linguagem locais e Qdrant como banco de dados vetorial. A arquitetura segue princípios de Clean Architecture para garantir uma separação clara de responsabilidades.
+This project implements a RAG (Retrieval-Augmented Generation) system using Go, Ollama for local language models, and Qdrant as a vector database. The architecture follows Clean Architecture principles to ensure a clear separation of responsibilities.
 
 ![RAG Architecture](https://miro.medium.com/max/1400/1*Z0sOxEyR6j_4VqaJNMaJvg.jpeg)
 
-## Funcionalidades
+## Features
 
-- Carrega e divide documentos PDF em partes menores (chunks)
-- Gera embeddings para cada chunk utilizando modelos Ollama
-- Armazena embeddings e texto em um banco de dados vetorial Qdrant
-- Busca documentos relevantes para uma pergunta (query)
-- Utiliza LLM para gerar respostas baseadas nos documentos recuperados
+- Loads and splits PDF documents into smaller chunks
+- Generates embeddings for each chunk using Ollama models
+- Stores embeddings and text in a Qdrant vector database
+- Retrieves relevant documents for a query
+- Uses LLM to generate answers based on retrieved documents
 
-## Pré-requisitos
+## Prerequisites
 
-- **Go** (versão 1.18 ou superior) - [Download Go](https://go.dev/doc/install)
+- **Go** (version 1.18 or higher) - [Download Go](https://go.dev/doc/install)
 - **Ollama** - [Download Ollama](https://ollama.com)
 - **Qdrant** - [Docker Qdrant](https://qdrant.tech/documentation/guides/installation/)
 
-## Instalação 
+## Installation 
 
-### 1. Clone o repositório
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/DjonatanS/rag-ollama-qdrant-go
 cd rag-ollama-qdrant-go
 ```
 
-### 2. Instale as dependências
+### 2. Install dependencies
 
 ```bash
 go mod tidy
 ```
 
-### 3. Prepare a instalação do Ollama
+### 3. Set up Ollama
 
-Baixe e instale o Ollama em: [https://ollama.com/download](https://ollama.com/download)
+Download and install Ollama at: [https://ollama.com/download](https://ollama.com/download)
 
-Após a instalação, baixe os modelos necessários:
+After installation, download the necessary models:
 
 ```bash
-# Modelo para gerar embeddings (vetor 768-dimensional)
+# Model for generating embeddings (768-dimensional vector)
 ollama pull nomic-embed-text
 
-# Modelo para geração de texto (você pode trocar por outros modelos suportados)
+# Model for text generation (you can replace it with other supported models)
 ollama pull deepseek-r1:8b
 ```
 
-### 4. Inicie o Qdrant
+### 4. Start Qdrant
 
-A maneira mais fácil é executar via Docker:
+The easiest way is to run it via Docker:
 
 ```bash
 docker run -d -p 6333:6333 -p 6334:6334 \
@@ -57,99 +57,99 @@ docker run -d -p 6333:6333 -p 6334:6334 \
     qdrant/qdrant
 ```
 
-Verifique se está funcionando acessando: http://localhost:6333/dashboard
+Check if it's working by accessing: http://localhost:6333/dashboard
 
-## Estrutura do Projeto
+## Project Structure
 
-O projeto segue os princípios de Clean Architecture:
+The project follows Clean Architecture principles:
 
 ```
 /cmd
-  /ragapp           # Ponto de entrada do aplicativo
+  /ragapp           # Application entry point
 /internal
-  /usecase          # Casos de uso e interfaces (regras de negócios)
-  /infra            # Implementações concretas (adaptadores)
-    /llm            # Adaptadores para modelos de linguagem
-    /loader         # Adaptadores para carregamento de documentos
-    /splitter       # Adaptadores para divisão de texto
-    /vectorstore    # Adaptadores para bancos de dados vetoriais
+  /usecase          # Use cases and interfaces (business rules)
+  /infra            # Concrete implementations (adapters)
+    /llm            # Adapters for language models
+    /loader         # Adapters for document loading
+    /splitter       # Adapters for text splitting
+    /vectorstore    # Adapters for vector databases
 /data
-  /pdfs             # Arquivos PDF para processamento
+  /pdfs             # PDF files for processing
 ```
 
-## Como usar
+## How to Use
 
-### 1. Prepare seus documentos
+### 1. Prepare your documents
 
-Coloque seus arquivos PDF na pasta `data/pdfs/`. O aplicativo processará todos os arquivos PDF encontrados neste diretório.
+Place your PDF files in the `data/pdfs/` folder. The application will process all PDF files found in this directory.
 
-### 2. Compile e execute o aplicativo
+### 2. Compile and run the application
 
 ```bash
 go build -o ragapp cmd/ragapp/main.go
-./ragapp "Sua pergunta aqui"
+./ragapp "Your question here"
 ```
 
-Ou execute diretamente:
+Or run directly:
 
 ```bash
-go run cmd/ragapp/main.go "Sua pergunta aqui"
+go run cmd/ragapp/main.go "Your question here"
 ```
 
-Se nenhuma pergunta for fornecida, será usada uma pergunta padrão.
+If no question is provided, a default question will be used.
 
-### 3. Configuração
+### 3. Configuration
 
-As principais configurações estão definidas no arquivo `cmd/ragapp/main.go` como constantes:
+The main configurations are defined in the `cmd/ragapp/main.go` file as constants:
 
-| Parâmetro | Descrição | Valor Padrão |
-|-----------|-----------|--------------|
-| pdfDir | Diretório dos PDFs | "data/pdfs" |
-| pdfPattern | Padrão para encontrar PDFs | "*.pdf" |
-| qdrantURL | URL do servidor Qdrant | "http://localhost:6333" |
-| collectionName | Nome da coleção no Qdrant | "my_collection" |
-| embedModel | Modelo para embeddings | "nomic-embed-text" |
-| genModel | Modelo para geração de texto | "deepseek-r1:8b" |
-| vectorSize | Dimensão dos vetores | 768 |
-| chunkSize | Tamanho dos chunks de texto | 1000 |
-| chunkOverlap | Sobreposição entre chunks | 100 |
+| Parameter | Description | Default Value |
+|-----------|-------------|--------------|
+| pdfDir | PDF directory | "data/pdfs" |
+| pdfPattern | Pattern to find PDFs | "*.pdf" |
+| qdrantURL | Qdrant server URL | "http://localhost:6333" |
+| collectionName | Collection name in Qdrant | "my_collection" |
+| embedModel | Model for embeddings | "nomic-embed-text" |
+| genModel | Model for text generation | "deepseek-r1:8b" |
+| vectorSize | Vector dimensions | 768 |
+| chunkSize | Text chunk size | 1000 |
+| chunkOverlap | Overlap between chunks | 100 |
 
-Para alterar estas configurações, edite o arquivo `cmd/ragapp/main.go`.
+To change these configurations, edit the `cmd/ragapp/main.go` file.
 
-## Como Funciona
+## How It Works
 
-1. **Fase de Ingestão**:
-   - Os arquivos PDF são carregados e divididos em chunks menores
-   - Cada chunk é convertido em um embedding usando o modelo Ollama
-   - Os embeddings e o texto são armazenados no Qdrant
+1. **Ingestion Phase**:
+   - PDF files are loaded and split into smaller chunks
+   - Each chunk is converted to an embedding using the Ollama model
+   - Embeddings and text are stored in Qdrant
 
-2. **Fase de Consulta**:
-   - A pergunta é convertida em embedding
-   - O Qdrant é consultado para encontrar documentos com embeddings similares
-   - Os documentos relevantes são enviados ao LLM junto com a pergunta
-   - O LLM gera uma resposta baseada nos documentos e na pergunta
+2. **Query Phase**:
+   - The question is converted to an embedding
+   - Qdrant is queried to find documents with similar embeddings
+   - Relevant documents are sent to the LLM along with the question
+   - The LLM generates a response based on the documents and the question
 
-## Arquitetura do Código
+## Code Architecture
 
-### Camada de Interface de Usuário (UI)
-- `cmd/ragapp/main.go`: Ponto de entrada, configuração e fluxo principal
+### User Interface Layer (UI)
+- `cmd/ragapp/main.go`: Entry point, configuration, and main flow
 
-### Camada de Casos de Uso
-- `internal/usecase/interfaces.go`: Define interfaces para as operações principais
-- `internal/usecase/ingestion_usecase.go`: Orquestra o processo de ingestão de documentos
-- `internal/usecase/query_usecase.go`: Orquestra o processo de consulta e geração de resposta
+### Use Case Layer
+- `internal/usecase/interfaces.go`: Defines interfaces for the main operations
+- `internal/usecase/ingestion_usecase.go`: Orchestrates the document ingestion process
+- `internal/usecase/query_usecase.go`: Orchestrates the query and response generation process
 
-### Camada de Infraestrutura
-- `internal/infra/loader/pdf_loader.go`: Implementa carregamento de PDFs
-- `internal/infra/splitter/recursive_splitter.go`: Implementa divisão de texto
-- `internal/infra/llm/ollama_embedder.go`: Implementa geração de embeddings com Ollama
-- `internal/infra/llm/ollama_llm.go`: Implementa geração de texto com Ollama
-- `internal/infra/vectorstore/qdrant_adapter.go`: Implementa armazenamento e recuperação com Qdrant
+### Infrastructure Layer
+- `internal/infra/loader/pdf_loader.go`: Implements PDF loading
+- `internal/infra/splitter/recursive_splitter.go`: Implements text splitting
+- `internal/infra/llm/ollama_embedder.go`: Implements embedding generation with Ollama
+- `internal/infra/llm/ollama_llm.go`: Implements text generation with Ollama
+- `internal/infra/vectorstore/qdrant_adapter.go`: Implements storage and retrieval with Qdrant
 
-## Contribuições
+## Contributions
 
-Sinta-se à vontade para criar issues, enviar PRs ou sugerir melhorias para este projeto.
+Feel free to create issues, send PRs, or suggest improvements to this project.
 
-## Licença
+## License
 
-Este projeto é licenciado sob a licença MIT.
+This project is licensed under the MIT license.
