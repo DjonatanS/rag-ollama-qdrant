@@ -30,7 +30,7 @@ const (
 	vectorSize     = 768
 	chunkSize      = 1000
 	chunkOverlap   = 100
-	port           = 8080
+	port           = 8020
 )
 
 func main() {
@@ -52,9 +52,14 @@ func main() {
 	}
 
 	// Instanciar o adaptador do Qdrant (vector store)
-	vectorStore, err := vectorstore.NewQdrantAdapter(qdrantURL, collectionName, vectorSize, embedder)
+	vectorStore, err := vectorstore.NewQdrantVectorStore(qdrantURL, embedder)
 	if err != nil {
 		log.Fatalf("Falha ao criar adaptador do Qdrant: %v", err)
+	}
+
+	// Ensure the collection exists
+	if err := vectorStore.EnsureCollection(ctx, collectionName, vectorSize); err != nil {
+		log.Fatalf("Falha ao garantir coleção: %v", err)
 	}
 
 	// Configurar rotas
@@ -203,18 +208,28 @@ func main() {
 				colName = strings.ToLower(colName)
 
 				// Criar uma nova instância do vector store para esta coleção
-				pdfVectorStore, err := vectorstore.NewQdrantAdapter(qdrantURL, colName, vectorSize, embedder)
+				pdfVectorStore, err := vectorstore.NewQdrantVectorStore(qdrantURL, embedder)
 				if err != nil {
 					log.Printf("Erro ao criar adaptador do Qdrant para %s: %v", colName, err)
 					continue
 				}
 
+				// Ensure the collection exists for this PDF
+				if err := pdfVectorStore.EnsureCollection(ctx, colName, vectorSize); err != nil {
+					log.Printf("Erro ao garantir coleção para %s: %v", colName, err)
+					continue
+				}
+
 				// Criar e executar o caso de uso de ingestão para este PDF
 				pdfLoader := loader.NewPDFLoader()
-				textSplitter := splitter.NewRecursiveCharacterTextSplitter(chunkSize, chunkOverlap)
+				textSplitter := splitter.NewRecursiveCharacterSplitter(chunkSize, chunkOverlap)
 				ingestionUseCase := usecase.NewIngestionUseCase(pdfLoader, textSplitter, embedder, pdfVectorStore)
 
-				err = ingestionUseCase.Execute(ctx, pdfPath)
+				// Extract directory and use the single PDF file as the pattern
+				pdfDir := filepath.Dir(pdfPath)
+				pdfFile := filepath.Base(pdfPath)
+
+				err = ingestionUseCase.Execute(ctx, pdfDir, pdfFile, colName, vectorSize)
 				if err != nil {
 					log.Printf("Erro ao processar %s: %v", fileHeader.Filename, err)
 					continue
@@ -222,10 +237,14 @@ func main() {
 			} else {
 				// Usar a coleção padrão para todos os PDFs
 				pdfLoader := loader.NewPDFLoader()
-				textSplitter := splitter.NewRecursiveCharacterTextSplitter(chunkSize, chunkOverlap)
+				textSplitter := splitter.NewRecursiveCharacterSplitter(chunkSize, chunkOverlap)
 				ingestionUseCase := usecase.NewIngestionUseCase(pdfLoader, textSplitter, embedder, vectorStore)
 
-				err = ingestionUseCase.Execute(ctx, pdfPath)
+				// Extract directory and use the single PDF file as the pattern
+				pdfDir := filepath.Dir(pdfPath)
+				pdfFile := filepath.Base(pdfPath)
+
+				err = ingestionUseCase.Execute(ctx, pdfDir, pdfFile, collectionName, vectorSize)
 				if err != nil {
 					log.Printf("Erro ao processar %s: %v", fileHeader.Filename, err)
 					continue
