@@ -286,3 +286,41 @@ func sortDocumentsByScore(docs []schema.Document) {
 		return i < j
 	})
 }
+
+// ExecuteStreaming realiza uma consulta ao sistema RAG e envia a resposta via streaming
+func (uc *QueryUseCase) ExecuteStreaming(ctx context.Context, query string, callback func(chunk string)) error {
+	// Recuperar documentos relevantes do retriever
+	relevantDocs, err := uc.retriever.GetRelevantDocuments(ctx, query)
+	if err != nil {
+		return fmt.Errorf("falha ao recuperar documentos: %w", err)
+	}
+
+	if len(relevantDocs) == 0 {
+		callback("Não foram encontrados documentos relevantes para sua consulta.")
+		return nil
+	}
+
+	// Construir o prompt combinando a consulta com os documentos relevantes
+	var context string
+	for i, doc := range relevantDocs {
+		context += fmt.Sprintf("Documento %d:\n%s\n\n", i+1, doc.PageContent)
+	}
+
+	prompt := fmt.Sprintf(`Baseado apenas nos seguintes documentos:
+
+%s
+
+Responda à seguinte pergunta:
+%s
+
+Se os documentos não tiverem informações suficientes para responder, diga "Não tenho informações suficientes para responder a esta pergunta."`,
+		context, query)
+
+	// Usar o LLM para gerar uma resposta via streaming
+	err = uc.llm.CallWithStreaming(ctx, prompt, callback)
+	if err != nil {
+		return fmt.Errorf("falha no streaming da resposta: %w", err)
+	}
+
+	return nil
+}

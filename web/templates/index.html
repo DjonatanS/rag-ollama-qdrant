@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG com Ollama e Qdrant</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>RAG com Ollama e Qdrant</h1>
+            <p>Recuperação de Informações Aumentada por Geração</p>
+        </header>
+
+        <main>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="query">Consultar</button>
+                <button class="tab-btn" data-tab="ingest">Ingerir Documentos</button>
+            </div>
+
+            <div class="tab-content active" id="query-tab">
+                <h2>Faça uma pergunta</h2>
+                <div class="form-group">
+                    <form id="query-form">
+                        <textarea id="question" placeholder="Digite sua pergunta aqui..." rows="3"></textarea>
+                        <div class="options">
+                            <label>
+                                <input type="checkbox" id="stream-mode" checked>
+                                Modo streaming
+                            </label>
+                        </div>
+                        <button type="submit" class="btn">Enviar</button>
+                    </form>
+                </div>
+                <div class="response-container">
+                    <h3>Resposta:</h3>
+                    <div id="answer" class="answer"></div>
+                    <div id="loading" class="loading hidden">Gerando resposta...</div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="ingest-tab">
+                <h2>Ingestão de Documentos</h2>
+                <div class="upload-container">
+                    <form id="upload-form" enctype="multipart/form-data">
+                        <div class="drop-zone">
+                            <span class="drop-zone-prompt">Arraste arquivos PDF aqui ou clique para selecionar</span>
+                            <input type="file" name="pdfs" id="file-input" accept=".pdf" multiple class="drop-zone-input">
+                        </div>
+                        <div class="options">
+                            <label>
+                                <input type="checkbox" id="create-per-pdf">
+                                Criar coleção por PDF
+                            </label>
+                        </div>
+                        <button type="submit" class="btn">Processar Documentos</button>
+                    </form>
+                </div>
+                <div id="ingest-status" class="status"></div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Desenvolvido com Clean Architecture, Go, Ollama e Qdrant</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
