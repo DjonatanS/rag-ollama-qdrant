@@ -11,6 +11,8 @@ This project implements a RAG (Retrieval-Augmented Generation) system using Go, 
 - Stores embeddings and text in a Qdrant vector database
 - Retrieves relevant documents for a query
 - Uses LLM to generate answers based on retrieved documents
+- Supports streaming responses for a more interactive experience
+- Allows per-PDF collection creation for more targeted retrieval
 
 ## Prerequisites
 
@@ -18,7 +20,7 @@ This project implements a RAG (Retrieval-Augmented Generation) system using Go, 
 - **Ollama** - [Download Ollama](https://ollama.com)
 - **Qdrant** - [Docker Qdrant](https://qdrant.tech/documentation/guides/installation/)
 
-## Installation 
+## Installation
 
 ### 1. Clone the repository
 
@@ -81,26 +83,102 @@ The project follows Clean Architecture principles:
 
 ### 1. Prepare your documents
 
-Place your PDF files in the `data/pdfs/` folder. The application will process all PDF files found in this directory.
+Place your PDF files in the [`data/pdfs`](data/pdfs) folder. The application will process all PDF files found in this directory during the ingestion phase.
 
-### 2. Compile and run the application
+### 2. Compile the application (Optional)
+
+You can compile the application into a single binary:
 
 ```bash
 go build -o ragapp cmd/ragapp/main.go
-./ragapp "Your question here"
 ```
 
-Or run directly:
+### 3. Run the application
+
+The application has two main modes: `ingest` and `query`.
+
+#### Ingestion Mode
+
+This mode processes the PDF documents in the [`data/pdfs`](data/pdfs) directory, generates embeddings, and stores them in Qdrant. Run this mode first.
+
+**Using `go run`:**
 
 ```bash
-go run cmd/ragapp/main.go "Your question here"
+go run cmd/ragapp/main.go ingest
 ```
 
-If no question is provided, a default question will be used.
+**Using the compiled binary:**
 
-### 3. Configuration
+```bash
+./ragapp ingest
+```
 
-The main configurations are defined in the `cmd/ragapp/main.go` file as constants:
+**Per-PDF collections:**
+To create a separate collection for each PDF (useful for targeted queries):
+
+```bash
+go run cmd/ragapp/main.go ingest-per-pdf
+```
+
+#### Query Mode
+
+This mode takes a question as input, retrieves relevant documents from Qdrant, and generates an answer using the LLM.
+
+**Using `go run`:**
+
+```bash
+# Ask a specific question
+go run cmd/ragapp/main.go query "Your question here?"
+
+# Ask a default question (if no question is provided)
+go run cmd/ragapp/main.go query
+```
+
+**Using the compiled binary:**
+
+```bash
+# Ask a specific question
+./ragapp query "Your question here?"
+
+# Ask a default question (if no question is provided)
+./ragapp query
+```
+
+#### Streaming Mode
+
+The streaming mode provides real-time token-by-token responses, similar to ChatGPT's streaming experience:
+
+```bash
+go run cmd/ragapp/main.go stream "What are the key features of Go programming language?"
+```
+
+**Using the compiled binary:**
+
+```bash
+./ragapp stream "What are the key features of Go programming language?"
+```
+
+This will display the LLM's response in real-time as it's being generated, providing a more interactive experience.
+
+#### Combined Mode (Default)
+
+If you don't specify a mode, the application will run both ingestion and query phases:
+
+```bash
+go run cmd/ragapp/main.go "Your question here?"
+```
+
+### 4. Help
+
+To see all available options:
+
+```bash
+go run cmd/ragapp/main.go help
+```
+
+### 5. Configuration
+
+The main configurations are defined in the [`cmd/ragapp/main.go`](cmd/ragapp/main.go) file as constants:
 
 | Parameter | Description | Default Value |
 |-----------|-------------|--------------|
@@ -114,37 +192,44 @@ The main configurations are defined in the `cmd/ragapp/main.go` file as constant
 | chunkSize | Text chunk size | 1000 |
 | chunkOverlap | Overlap between chunks | 100 |
 
-To change these configurations, edit the `cmd/ragapp/main.go` file.
+To change these configurations, edit the [`cmd/ragapp/main.go`](cmd/ragapp/main.go) file before compiling or running.
 
 ## How It Works
 
-1. **Ingestion Phase**:
-   - PDF files are loaded and split into smaller chunks
-   - Each chunk is converted to an embedding using the Ollama model
-   - Embeddings and text are stored in Qdrant
+1.  **Ingestion Phase (`ingest` mode)**:
+    *   PDF files from `pdfDir` are loaded.
+    *   Text is extracted and split into chunks (`chunkSize`, `chunkOverlap`).
+    *   Each chunk is converted to an embedding using the Ollama `embedModel`.
+    *   Embeddings and corresponding text chunks are stored in the Qdrant `collectionName`.
 
-2. **Query Phase**:
-   - The question is converted to an embedding
-   - Qdrant is queried to find documents with similar embeddings
-   - Relevant documents are sent to the LLM along with the question
-   - The LLM generates a response based on the documents and the question
+2.  **Query Phase (`query` mode)**:
+    *   The input question is converted to an embedding using the `embedModel`.
+    *   Qdrant is queried to find documents (chunks) with embeddings similar to the question embedding.
+    *   The retrieved document chunks are combined with the original question to form a prompt.
+    *   The prompt is sent to the Ollama `genModel`.
+    *   The LLM generates a response based on the provided context (documents) and the question.
+
+3.  **Streaming Phase (`stream` mode)**:
+    *   Works like the query phase but delivers the response token by token as it's generated.
+    *   The UI displays the response in real-time, similar to ChatGPT's streaming experience.
+    *   Particularly useful for longer responses where you want to see progress immediately.
 
 ## Code Architecture
 
 ### User Interface Layer (UI)
-- `cmd/ragapp/main.go`: Entry point, configuration, and main flow
+- [`cmd/ragapp/main.go`](cmd/ragapp/main.go): Entry point, configuration, command-line argument parsing, and main flow orchestration.
 
 ### Use Case Layer
-- `internal/usecase/interfaces.go`: Defines interfaces for the main operations
-- `internal/usecase/ingestion_usecase.go`: Orchestrates the document ingestion process
-- `internal/usecase/query_usecase.go`: Orchestrates the query and response generation process
+- [`internal/usecase/interfaces.go`](internal/usecase/interfaces.go): Defines interfaces for the core operations (Loader, Splitter, Embedder, LLM, VectorStore).
+- [`internal/usecase/ingestion_usecase.go`](internal/usecase/ingestion_usecase.go): Orchestrates the document ingestion process (load -> split -> embed -> store).
+- [`internal/usecase/query_usecase.go`](internal/usecase/query_usecase.go): Orchestrates the query and response generation process (embed query -> search -> generate response).
 
 ### Infrastructure Layer
-- `internal/infra/loader/pdf_loader.go`: Implements PDF loading
-- `internal/infra/splitter/recursive_splitter.go`: Implements text splitting
-- `internal/infra/llm/ollama_embedder.go`: Implements embedding generation with Ollama
-- `internal/infra/llm/ollama_llm.go`: Implements text generation with Ollama
-- `internal/infra/vectorstore/qdrant_adapter.go`: Implements storage and retrieval with Qdrant
+- [`internal/infra/loader/pdf_loader.go`](internal/infra/loader/pdf_loader.go): Implements the `Loader` interface for PDF files.
+- [`internal/infra/splitter/recursive_splitter.go`](internal/infra/splitter/recursive_splitter.go): Implements the `Splitter` interface using recursive character splitting.
+- [`internal/infra/llm/ollama_embedder.go`](internal/infra/llm/ollama_embedder.go): Implements the `Embedder` interface using an Ollama model.
+- [`internal/infra/llm/ollama_llm.go`](internal/infra/llm/ollama_llm.go): Implements the `LLM` interface for text generation using an Ollama model.
+- [`internal/infra/vectorstore/qdrant_adapter.go`](internal/infra/vectorstore/qdrant_adapter.go): Implements the `VectorStore` interface using Qdrant.
 
 ## Contributions
 

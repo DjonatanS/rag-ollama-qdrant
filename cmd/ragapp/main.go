@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/DjonatanS/rag-ollama-qdrant-go/internal/infra/llm"
 	"github.com/DjonatanS/rag-ollama-qdrant-go/internal/infra/loader"
@@ -29,10 +31,47 @@ func main() {
 	ctx := context.Background()
 	log.Println("Starting RAG application...")
 
-	// --- Dependency Injection ---
+	// Processar argumentos da linha de comando
+	var mode string
+	var query string
+	var perPdf bool
+
+	// Verificar se o modo está especificado
+	if len(os.Args) > 1 {
+		mode = strings.ToLower(os.Args[1])
+	}
+
+	// Verificar se uma pergunta foi fornecida
+	if len(os.Args) > 2 {
+		query = os.Args[2]
+	} else {
+		query = "Qual a habilidade mais importante na era da Inteligência Artificial?"
+	}
+
+	// Se o modo é help, mostrar instruções
+	if mode == "help" {
+		fmt.Println("Uso: ragapp [modo] [pergunta]")
+		fmt.Println("Modos:")
+		fmt.Println("  ingest    - Apenas ingere os documentos (padrão: uma coleção)")
+		fmt.Println("  ingest-per-pdf - Ingere documentos criando uma coleção por PDF")
+		fmt.Println("  query     - Apenas consulta os documentos (padrão: uma coleção)")
+		fmt.Println("  stream    - Consulta com saída em streaming")
+		fmt.Println("  all       - Ingere e consulta (padrão)")
+		fmt.Println("  help      - Mostra esta ajuda")
+		fmt.Println("\nExemplos:")
+		fmt.Println("  ragapp ingest-per-pdf")
+		fmt.Println("  ragapp stream \"Como monitorar o desempenho de containers com Go?\"")
+		return
+	}
+
+	// Se o modo é ingest-per-pdf, configurar a flag correspondente
+	if mode == "ingest-per-pdf" {
+		perPdf = true
+		mode = "ingest" // Normalizar para o switch abaixo
+	}
+
 	log.Println("Initializing components...")
 
-	// Infrastructure Adapters
 	pdfLoader := loader.NewPDFLoader()
 	textSplitter := splitter.NewRecursiveCharacterSplitter(chunkSize, chunkOverlap)
 
@@ -41,9 +80,15 @@ func main() {
 		log.Fatalf("Failed to initialize Ollama embedder: %v", err)
 	}
 
-	qdrantStore, err := vectorstore.NewQdrantVectorStore(qdrantURL, embedder) // Pass embedder for Retriever needs
+	qdrantStore, err := vectorstore.NewQdrantVectorStore(qdrantURL, embedder)
 	if err != nil {
 		log.Fatalf("Failed to initialize Qdrant vector store: %v", err)
+	}
+
+	// Criar QdrantRetriever para suporte a múltiplas coleções
+	qdrantRetriever, err := vectorstore.NewQdrantRetriever(qdrantURL, embedder)
+	if err != nil {
+		log.Fatalf("Failed to initialize Qdrant retriever: %v", err)
 	}
 
 	generatorLLM, err := llm.NewOllamaLLM(genModel)
@@ -55,33 +100,69 @@ func main() {
 
 	// Use Cases
 	ingestionUC := usecase.NewIngestionUseCase(pdfLoader, textSplitter, embedder, qdrantStore)
-	// QdrantStore implements both VectorStore and Retriever interfaces
-	queryUC := usecase.NewQueryUseCase(embedder, qdrantStore, generatorLLM)
+	queryUC := usecase.NewQueryUseCase(embedder, qdrantRetriever, generatorLLM)
 
-	// --- Application Logic ---
+	// Executar o modo selecionado
+	switch mode {
+	case "ingest":
+		// Apenas ingestão
+		log.Println("--- Starting Ingestion Phase ---")
+		if perPdf {
+			err = ingestionUC.ExecutePerPDF(ctx, pdfDir, pdfPattern, vectorSize)
+		} else {
+			err = ingestionUC.Execute(ctx, pdfDir, pdfPattern, collectionName, vectorSize)
+		}
+		if err != nil {
+			log.Fatalf("Ingestion failed: %v", err)
+		}
+		log.Println("--- Ingestion Phase Complete ---")
 
-	// 1. Ingestion
-	log.Println("--- Starting Ingestion Phase ---")
-	err = ingestionUC.Execute(ctx, pdfDir, pdfPattern, collectionName, vectorSize)
-	if err != nil {
-		log.Fatalf("Ingestion failed: %v", err)
+	case "query":
+		// Apenas consulta padrão (sem streaming)
+		log.Println("--- Starting Query Phase ---")
+		executeStandardQuery(ctx, queryUC, qdrantRetriever, query)
+		log.Println("--- Query Phase Complete ---")
+
+	case "stream":
+		// Consulta com resposta em streaming
+		log.Println("--- Starting Streaming Query Phase ---")
+		executeStreamingQuery(ctx, queryUC, qdrantRetriever, query)
+		log.Println("--- Streaming Query Phase Complete ---")
+
+	default:
+		// Modo padrão: ingestão seguida de consulta
+		log.Println("--- Starting Ingestion Phase ---")
+		if perPdf {
+			err = ingestionUC.ExecutePerPDF(ctx, pdfDir, pdfPattern, vectorSize)
+		} else {
+			err = ingestionUC.Execute(ctx, pdfDir, pdfPattern, collectionName, vectorSize)
+		}
+		if err != nil {
+			log.Fatalf("Ingestion failed: %v", err)
+		}
+		log.Println("--- Ingestion Phase Complete ---")
+
+		log.Println("--- Starting Query Phase ---")
+		if perPdf {
+			executeStreamingMultiCollectionQuery(ctx, queryUC, qdrantRetriever, query)
+		} else {
+			executeStandardQuery(ctx, queryUC, qdrantRetriever, query)
+		}
+		log.Println("--- Query Phase Complete ---")
 	}
-	log.Println("--- Ingestion Phase Complete ---")
 
-	// 2. Querying
-	log.Println("--- Starting Query Phase ---")
-	// Example query from command line arguments or default
-	question := "Qual a habilidade mais importante na era da Inteligência Artificial?"
-	if len(os.Args) > 1 {
-		question = os.Args[1] // Use first argument as question if provided
-	}
+	log.Println("RAG application finished.")
+}
 
-	answer, relevantDocs, err := queryUC.Execute(ctx, question)
+// executeStandardQuery executa uma consulta padrão em uma única coleção
+func executeStandardQuery(ctx context.Context, queryUC *usecase.QueryUseCase, retriever *vectorstore.QdrantRetriever, query string) {
+	log.Printf("\n=== Query ===\n%s\n", query)
+
+	answer, relevantDocs, err := queryUC.Execute(ctx, query)
 	if err != nil {
 		log.Fatalf("Query failed: %v", err)
 	}
 
-	log.Printf("\n=== Query ===\n%s\n", question)
 	log.Printf("\n=== Answer ===\n%s\n", answer)
 
 	log.Println("\n=== Relevant Documents Retrieved ===")
@@ -90,7 +171,84 @@ func main() {
 		log.Printf("Source: %s", doc.Metadata["source"])
 		log.Printf("Content: %s\n", doc.PageContent)
 	}
-	log.Println("--- Query Phase Complete ---")
+}
 
-	log.Println("RAG application finished.")
+// executeStreamingQuery executa uma consulta com resposta em streaming
+func executeStreamingQuery(ctx context.Context, queryUC *usecase.QueryUseCase, retriever *vectorstore.QdrantRetriever, query string) {
+	log.Printf("\n=== Query ===\n%s\n", query)
+	log.Printf("\n=== Answer (streaming) ===\n")
+
+	// Definir callback para exibir cada parte da resposta
+	streamCallback := func(chunk string) {
+		fmt.Print(chunk)
+	}
+
+	// Lista todas as coleções disponíveis
+	collections, err := retriever.ListCollections(ctx)
+	if err != nil {
+		log.Fatalf("Failed to list collections: %v", err)
+	}
+
+	// Se houver apenas uma coleção ou for a coleção padrão, use a consulta de streaming padrão
+	if len(collections) <= 1 || (len(collections) == 1 && collections[0] == collectionName) {
+		relevantDocs, err := queryUC.ExecuteWithStreaming(ctx, query, collectionName, streamCallback)
+		if err != nil {
+			log.Fatalf("Streaming query failed: %v", err)
+		}
+
+		fmt.Println() // Nova linha após resposta completa
+
+		log.Println("\n=== Relevant Documents Retrieved ===")
+		for i, doc := range relevantDocs {
+			log.Printf("--- Document %d (Score: %.4f) ---", i+1, doc.Metadata["score"])
+			log.Printf("Source: %s", doc.Metadata["source"])
+			log.Printf("Content: %s\n", doc.PageContent)
+		}
+	} else {
+		// Se houver múltiplas coleções, use a consulta de streaming multicoleção
+		executeStreamingMultiCollectionQuery(ctx, queryUC, retriever, query)
+	}
+}
+
+// executeStreamingMultiCollectionQuery executa uma consulta em múltiplas coleções com streaming
+func executeStreamingMultiCollectionQuery(ctx context.Context, queryUC *usecase.QueryUseCase, retriever *vectorstore.QdrantRetriever, query string) {
+	log.Printf("\n=== Multi-Collection Query ===\n%s\n", query)
+	log.Printf("\n=== Answer (streaming from multiple collections) ===\n")
+
+	// Definir callback para exibir cada parte da resposta
+	streamCallback := func(chunk string) {
+		fmt.Print(chunk)
+	}
+
+	// Listar todas as coleções disponíveis
+	collections, err := retriever.ListCollections(ctx)
+	if err != nil {
+		log.Fatalf("Failed to list collections: %v", err)
+	}
+
+	if len(collections) == 0 {
+		log.Fatalf("No collections found in Qdrant")
+	}
+
+	log.Printf("Found %d collections: %v", len(collections), collections)
+
+	// Executar consulta em todas as coleções encontradas
+	relevantDocs, err := queryUC.ExecuteWithStreamingMultiCollection(ctx, query, collections, 2, streamCallback)
+	if err != nil {
+		log.Fatalf("Multi-collection streaming query failed: %v", err)
+	}
+
+	fmt.Println() // Nova linha após resposta completa
+
+	log.Println("\n=== Relevant Documents Retrieved ===")
+	for i, doc := range relevantDocs {
+		collection := "unknown"
+		if coll, ok := doc.Metadata["collection"].(string); ok {
+			collection = coll
+		}
+
+		log.Printf("--- Document %d (Collection: %s, Score: %.4f) ---", i+1, collection, doc.Metadata["score"])
+		log.Printf("Source: %s", doc.Metadata["source"])
+		log.Printf("Content: %s\n", doc.PageContent)
+	}
 }
