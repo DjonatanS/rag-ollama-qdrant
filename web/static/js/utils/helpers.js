@@ -136,7 +136,7 @@ const Helpers = {
             } else if (seg.type === 'think') {
                 html +=
                     `<div class="think">` +
-                        `<button class="toggle-btn">Mostrar Processamento Interno</button>` +
+                        `<button class="toggle-btn">Show Internal Processing</button>` +
                         `<div class="think-content hidden"><pre>${escaped}</pre></div>` +
                     `</div>`;
             }

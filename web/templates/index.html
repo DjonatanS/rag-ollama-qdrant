@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM Go Qdrant - RAG com Ollama</title>
+    <title>LLM Go Qdrant - RAG with Ollama</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -18,48 +18,48 @@
             <div class="auth-branding">
                 <i class="fas fa-brain fa-4x auth-logo"></i>
                 <h1 class="auth-title">LLM Go Qdrant</h1>
-                <p class="auth-tagline">Inteligência Aumentada para Seus Dados</p>
-                <p class="auth-description">Faça login ou registre-se para explorar visualizações vetoriais, realizar buscas semânticas e interagir com seus documentos.</p>
+                <p class="auth-tagline">Augmented Intelligence for Your Data</p>
+                <p class="auth-description">Login or register to explore vector visualizations, perform semantic searches and interact with your documents.</p>
             </div>
             <div class="auth-box">
                 <div class="auth-tabs">
                     <button class="auth-tab-btn active" data-auth="login">Login</button>
-                    <button class="auth-tab-btn" data-auth="register">Registrar</button>
+                    <button class="auth-tab-btn" data-auth="register">Register</button>
                 </div>
 
                 <div id="login-form-container" class="auth-form-container active">
                     <form id="login-form">
                         <div class="form-group">
                             <label for="login-email"><i class="fas fa-envelope"></i> Email</label>
-                            <input type="email" id="login-email" required placeholder="seuemail@exemplo.com">
+                            <input type="email" id="login-email" required placeholder="youremail@example.com">
                         </div>
                         <div class="form-group">
-                            <label for="login-password"><i class="fas fa-lock"></i> Senha</label>
+                            <label for="login-password"><i class="fas fa-lock"></i> Password</label>
                             <input type="password" id="login-password" required placeholder="••••••••">
                         </div>
-                        <button type="submit" class="btn btn-full btn-primary">Entrar</button>
+                        <button type="submit" class="btn btn-full btn-primary">Sign In</button>
                     </form>
                 </div>
 
                 <div id="register-form-container" class="auth-form-container">
                     <form id="register-form">
                         <div class="form-group">
-                            <label for="register-name"><i class="fas fa-user"></i> Nome</label>
-                            <input type="text" id="register-name" required placeholder="Seu Nome Completo">
+                            <label for="register-name"><i class="fas fa-user"></i> Name</label>
+                            <input type="text" id="register-name" required placeholder="Your Full Name">
                         </div>
                         <div class="form-group">
                             <label for="register-email"><i class="fas fa-envelope"></i> Email</label>
-                            <input type="email" id="register-email" required placeholder="seuemail@exemplo.com">
+                            <input type="email" id="register-email" required placeholder="youremail@example.com">
                         </div>
                         <div class="form-group">
-                            <label for="register-password"><i class="fas fa-lock"></i> Senha</label>
-                            <input type="password" id="register-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                            <label for="register-password"><i class="fas fa-lock"></i> Password</label>
+                            <input type="password" id="register-password" required minlength="6" placeholder="Minimum 6 characters">
                         </div>
                         <div class="form-group">
-                            <label for="register-confirm"><i class="fas fa-check-circle"></i> Confirmar Senha</label>
-                            <input type="password" id="register-confirm" required placeholder="Repita a senha">
+                            <label for="register-confirm"><i class="fas fa-check-circle"></i> Confirm Password</label>
+                            <input type="password" id="register-confirm" required placeholder="Repeat password">
                         </div>
-                        <button type="submit" class="btn btn-full btn-primary">Registrar</button>
+                        <button type="submit" class="btn btn-full btn-primary">Register</button>
                     </form>
                 </div>
 
@@ -86,32 +86,32 @@
                     <li><a href="#" class="nav-item active" data-page="dashboard"><i class="fas fa-tachometer-alt fa-fw"></i><span>Dashboard</span></a></li>
                     <li><a href="#" class="nav-item" data-page="query"><i class="fas fa-comments fa-fw"></i><span>Chat</span></a></li>
                     <li><a href="#" class="nav-item" data-page="ingest"><i class="fas fa-upload fa-fw"></i><span>Upload Docs</span></a></li>
-                    <li><a href="#" class="nav-item" data-page="collections"><i class="fas fa-database fa-fw"></i><span>Coleções</span></a></li>
-                    <li><a href="#" class="nav-item" data-page="profile"><i class="fas fa-user-circle fa-fw"></i><span>Meu Perfil</span></a></li>
+                    <li><a href="#" class="nav-item" data-page="collections"><i class="fas fa-database fa-fw"></i><span>Collections</span></a></li>
+                    <li><a href="#" class="nav-item" data-page="profile"><i class="fas fa-user-circle fa-fw"></i><span>My Profile</span></a></li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
                  <div class="user-info">
                      <i class="fas fa-user fa-fw"></i>
-                     <span id="user-display">Nome do Usuário</span>
+                     <span id="user-display">User Name</span>
                  </div>
-                <button id="logout-btn" class="btn-icon btn-logout" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
+                <button id="logout-btn" class="btn-icon btn-logout" title="Sign Out"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </div>
 
         <div class="content-area">
             <div class="top-nav">
-                 <h2 class="top-nav-title">Dashboard de Visualização</h2>
+                 <h2 class="top-nav-title">Visualization Dashboard</h2>
                  <div class="top-nav-actions">
                     <div class="collection-filter">
                         <i class="fas fa-filter"></i>
                         <select id="collection-select" class="top-nav-select">
-                            <option value="all">Todas as Coleções</option>
+                            <option value="all">All Collections</option>
                         </select>
                     </div>
-                    <input type="search" id="top-nav-search" class="top-nav-search" placeholder="Pesquisar...">
-                    <a href="/docs" class="top-nav-link" target="_blank" title="Documentação"><i class="fas fa-book"></i></a>
-                    <label class="switch" title="Alternar Modo Escuro/Claro">
+                    <input type="search" id="top-nav-search" class="top-nav-search" placeholder="Search...">
+                    <a href="/docs" class="top-nav-link" target="_blank" title="Documentation"><i class="fas fa-book"></i></a>
+                    <label class="switch" title="Toggle Dark/Light Mode">
                         <input type="checkbox" id="main-dark-mode-switch" checked>
                         <span class="slider round"></span>
                     </label>
@@ -123,29 +123,29 @@
                     <div class="dashboard-grid">
                         <div class="dashboard-card stat-card">
                             <div class="card-header">
-                                <h3><i class="fas fa-file-alt"></i> Estatísticas</h3>
+                                <h3><i class="fas fa-file-alt"></i> Statistics</h3>
                             </div>
                             <div class="card-body">
                                 <div class="stat-grid">
-                                    <div class="stat-item" title="Total de Documentos">
+                                    <div class="stat-item" title="Total Documents">
                                         <i class="fas fa-file-alt stat-icon"></i>
                                         <span class="stat-value" id="total-documents">0</span>
-                                        <span class="stat-label">Documentos</span>
+                                        <span class="stat-label">Documents</span>
                                     </div>
-                                    <div class="stat-item" title="Total de Coleções">
+                                    <div class="stat-item" title="Total Collections">
                                         <i class="fas fa-layer-group stat-icon"></i>
                                         <span class="stat-value" id="total-collections">0</span>
-                                        <span class="stat-label">Coleções</span>
+                                        <span class="stat-label">Collections</span>
                                     </div>
-                                    <div class="stat-item" title="Total de Chunks Vetorizados">
+                                    <div class="stat-item" title="Total Vectorized Chunks">
                                         <i class="fas fa-puzzle-piece stat-icon"></i>
                                         <span class="stat-value" id="total-chunks">0</span>
                                         <span class="stat-label">Chunks</span>
                                     </div>
-                                    <div class="stat-item" title="Dimensões dos Embeddings">
+                                    <div class="stat-item" title="Embedding Dimensions">
                                         <i class="fas fa-vector-square stat-icon"></i>
                                         <span class="stat-value" id="embedding-dim">0</span>
-                                        <span class="stat-label">Dimensões</span>
+                                        <span class="stat-label">Dimensions</span>
                                     </div>
                                 </div>
                             </div>
@@ -153,20 +153,20 @@
 
                         <div class="dashboard-card vis-card">
                             <div class="card-header">
-                                <h3><i class="fas fa-project-diagram"></i> Visualização Vetorial</h3>
+                                <h3><i class="fas fa-project-diagram"></i> Vector Visualization</h3>
                                 <div class="card-actions">
-                                    <select id="visualization-type" class="card-select" title="Algoritmo de Redução">
+                                    <select id="visualization-type" class="card-select" title="Reduction Algorithm">
                                         <option value="tsne">t-SNE</option>
                                         <option value="umap">UMAP</option>
                                         <option value="pca">PCA</option>
                                     </select>
-                                    <select id="visualization-switch" class="card-select" title="Tipo de Visualização">
+                                    <select id="visualization-switch" class="card-select" title="Visualization Type">
                                         <option value="scatter">Scatter Plot</option>
                                         <option value="bar">Bar Chart</option>
                                         <option value="table">Table View</option>
                                     </select>
-                                    <button class="btn-icon" title="Exportar CSV"><i class="fas fa-file-csv"></i></button>
-                                    <button class="btn-icon" title="Exportar JSON"><i class="fas fa-file-code"></i></button>
+                                    <button class="btn-icon" title="Export CSV"><i class="fas fa-file-csv"></i></button>
+                                    <button class="btn-icon" title="Export JSON"><i class="fas fa-file-code"></i></button>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -178,23 +178,23 @@
                         </div>
 
                         <div class="dashboard-card search-card">
-                            <div class="card-header"><h3><i class="fas fa-search"></i> Pesquisa por Similaridade</h3></div>
+                            <div class="card-header"><h3><i class="fas fa-search"></i> Similarity Search</h3></div>
                             <div class="card-body">
                                 <div class="similarity-search-form form-group">
                                      <div class="input-with-icon">
                                          <i class="fas fa-search input-icon"></i>
-                                         <input type="text" id="similarity-query" class="search-input" placeholder="Digite um termo...">
+                                         <input type="text" id="similarity-query" class="search-input" placeholder="Enter a term...">
                                      </div>
-                                    <button id="similarity-search-btn" class="btn btn-primary">Buscar</button>
+                                    <button id="similarity-search-btn" class="btn btn-primary">Search</button>
                                 </div>
                                 <div id="similarity-results" class="similarity-results scrollable">
-                                     <p class="placeholder-text">Resultados da busca aparecerão aqui.</p>
+                                     <p class="placeholder-text">Search results will appear here.</p>
                                 </div>
                             </div>
                         </div>
 
                         <div class="dashboard-card chart-card">
-                            <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Distribuição por Coleção</h3></div>
+                            <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Collection Distribution</h3></div>
                             <div class="card-body">
                                 <div class="chart-container" style="height:250px;">
                                      <div class="loading-overlay hidden"><div class="spinner"></div></div>
@@ -208,18 +208,18 @@
                 </div>
 
                 <div id="query-page" class="page-content">
-                    <header class="page-header"><h2><i class="fas fa-comments"></i> Chat com Documentos</h2></header>
+                    <header class="page-header"><h2><i class="fas fa-comments"></i> Chat with Documents</h2></header>
                     <div class="page-body chat-layout">
                         <div class="chat-output scrollable">
                             <div id="answer">
-                                <p class="placeholder-text">A resposta do chat aparecerá aqui.</p>
+                                <p class="placeholder-text">Chat response will appear here.</p>
                             </div>
-                            <div id="loading" class="loading hidden"><div class="spinner"></div> Gerando resposta...</div>
+                            <div id="loading" class="loading hidden"><div class="spinner"></div> Generating response...</div>
                         </div>
                         <div class="chat-input-area">
                             <form id="query-form">
-                                <textarea id="question" placeholder="Digite sua pergunta aqui..." rows="3"></textarea>
-                                <button type="submit" class="btn btn-primary" title="Enviar Pergunta"><i class="fas fa-paper-plane"></i></button>
+                                <textarea id="question" placeholder="Type your question here..." rows="3"></textarea>
+                                <button type="submit" class="btn btn-primary" title="Send Question"><i class="fas fa-paper-plane"></i></button>
                             </form>
                         </div>
                     </div>
@@ -227,66 +227,66 @@
                 </div>
 
                 <div id="ingest-page" class="page-content">
-                    <header class="page-header"><h2><i class="fas fa-upload"></i> Upload de Documentos</h2></header>
+                    <header class="page-header"><h2><i class="fas fa-upload"></i> Document Upload</h2></header>
                     <div class="page-body">
                         <form id="upload-form" enctype="multipart/form-data">
                             <div class="drop-zone" id="drop-zone">
                                 <i class="fas fa-cloud-upload-alt drop-zone-icon"></i>
-                                <span class="drop-zone-prompt">Arraste arquivos PDF aqui ou <strong>clique para selecionar</strong></span>
+                                <span class="drop-zone-prompt">Drag PDF files here or <strong>click to select</strong></span>
                                 <input type="file" name="pdfs" id="file-input" accept=".pdf" multiple class="drop-zone-input">
                             </div>
                             <div class="upload-options form-group">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="create-per-pdf">
-                                    <span>Criar coleção separada por PDF</span>
+                                    <span>Create separate collection per PDF</span>
                                 </label>
                             </div>
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-cogs"></i> Processar Documentos</button>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-cogs"></i> Process Documents</button>
                         </form>
                         <div id="ingest-status" class="status"></div>
                     </div>
                 </div>
 
                 <div id="collections-page" class="page-content">
-                    <header class="page-header"><h2><i class="fas fa-database"></i> Gerenciar Coleções</h2></header>
+                    <header class="page-header"><h2><i class="fas fa-database"></i> Manage Collections</h2></header>
                     <div class="page-body">
-                        <p class="placeholder-text">Funcionalidade de gerenciamento de coleções (listar, excluir, etc.) a ser implementada.</p>
+                        <p class="placeholder-text">Collection management functionality (list, delete, etc.) to be implemented.</p>
                     </div>
                 </div>
 
                 <div id="profile-page" class="page-content">
-                    <header class="page-header"><h2><i class="fas fa-user-circle"></i> Meu Perfil</h2></header>
+                    <header class="page-header"><h2><i class="fas fa-user-circle"></i> My Profile</h2></header>
                     <div class="page-body profile-grid">
                          <div class="profile-card">
-                            <h3>Informações Pessoais</h3>
+                            <h3>Personal Information</h3>
                             <form id="profile-form">
                                 <div class="form-group">
-                                    <label for="profile-name"><i class="fas fa-user fa-fw"></i> Nome</label>
+                                    <label for="profile-name"><i class="fas fa-user fa-fw"></i> Name</label>
                                     <input type="text" id="profile-name">
                                 </div>
                                 <div class="form-group">
                                     <label for="profile-email"><i class="fas fa-envelope fa-fw"></i> Email</label>
-                                    <input type="email" id="profile-email" disabled title="Email não pode ser alterado">
+                                    <input type="email" id="profile-email" disabled title="Email cannot be changed">
                                 </div>
-                                <button type="submit" class="btn btn-primary">Atualizar Perfil</button>
+                                <button type="submit" class="btn btn-primary">Update Profile</button>
                             </form>
                         </div>
                         <div class="profile-card">
-                            <h3>Alterar Senha</h3>
+                            <h3>Change Password</h3>
                             <form id="password-form">
                                 <div class="form-group">
-                                    <label for="current-password"><i class="fas fa-key fa-fw"></i> Senha Atual</label>
+                                    <label for="current-password"><i class="fas fa-key fa-fw"></i> Current Password</label>
                                     <input type="password" id="current-password" required placeholder="••••••••">
                                 </div>
                                 <div class="form-group">
-                                    <label for="new-password"><i class="fas fa-lock fa-fw"></i> Nova Senha</label>
-                                    <input type="password" id="new-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                                    <label for="new-password"><i class="fas fa-lock fa-fw"></i> New Password</label>
+                                    <input type="password" id="new-password" required minlength="6" placeholder="Minimum 6 characters">
                                 </div>
                                 <div class="form-group">
-                                    <label for="confirm-password"><i class="fas fa-check-circle fa-fw"></i> Confirmar Nova Senha</label>
-                                    <input type="password" id="confirm-password" required placeholder="Repita a nova senha">
+                                    <label for="confirm-password"><i class="fas fa-check-circle fa-fw"></i> Confirm New Password</label>
+                                    <input type="password" id="confirm-password" required placeholder="Repeat new password">
                                 </div>
-                                <button type="submit" class="btn btn-primary">Alterar Senha</button>
+                                <button type="submit" class="btn btn-primary">Change Password</button>
                             </form>
                         </div>
                         <div id="profile-status" class="status profile-status-full"></div> 

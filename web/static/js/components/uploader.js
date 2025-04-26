@@ -104,13 +104,13 @@ const Uploader = {
             if (this.elements.fileInput.files.length === 0) {
                 DOM.showStatus(
                     this.elements.ingestStatusDiv, 
-                    "Selecione ao menos um arquivo PDF.", 
+                    "Please select at least one PDF file.", 
                     'error'
                 );
                 return;
             }
 
-            DOM.showStatus(this.elements.ingestStatusDiv, "Processando documentos...", 'info');
+            DOM.showStatus(this.elements.ingestStatusDiv, "Processing documents...", 'info');
             
             const submitButton = this.elements.uploadForm.querySelector('button[type="submit"]');
             if (submitButton) submitButton.disabled = true;
@@ -132,7 +132,7 @@ const Uploader = {
 
                 DOM.showStatus(
                     this.elements.ingestStatusDiv, 
-                    `Sucesso: ${response.message || 'Documentos processados.'}`, 
+                    `Success: ${response.message || 'Documents processed.'}`, 
                     'success',
                     5000
                 );
@@ -144,7 +144,7 @@ const Uploader = {
                 
                 DOM.showStatus(
                     this.elements.ingestStatusDiv, 
-                    `Erro: ${error.message || 'Falha ao processar os documentos.'}`, 
+                    `Error: ${error.message || 'Failed to process documents.'}`, 
                     'error'
                 );
             } finally {
@@ -164,9 +164,9 @@ const Uploader = {
         const fileCount = fileInput.files.length;
         
         if (fileCount > 0) {
-            dropZonePrompt.textContent = `${fileCount} ${fileCount === 1 ? 'arquivo selecionado' : 'arquivos selecionados'}`;
+            dropZonePrompt.textContent = `${fileCount} ${fileCount === 1 ? 'file selected' : 'files selected'}`;
         } else {
-            dropZonePrompt.innerHTML = 'Arraste arquivos PDF aqui ou <strong>clique para selecionar</strong>';
+            dropZonePrompt.innerHTML = 'Drag PDF files here or <strong>click to select</strong>';
         }
     },
 
