@@ -140,7 +140,7 @@ const Auth = {
                 
                 DOM.showStatus(
                     this.elements.authStatus, 
-                    "Login bem-sucedido! Redirecionando...", 
+                    "Login successful! Redirecting...", 
                     'success'
                 );
                 
@@ -149,7 +149,7 @@ const Auth = {
             } else {
                 DOM.showStatus(
                     this.elements.authStatus, 
-                    "Email ou senha inválidos.", 
+                    "Invalid email or password.", 
                     'error'
                 );
             }
@@ -172,14 +172,14 @@ const Auth = {
             const confirm = DOM.getById('register-confirm').value;
 
             if (password !== confirm) {
-                DOM.showStatus(this.elements.authStatus, "As senhas não coincidem.", 'error');
+                DOM.showStatus(this.elements.authStatus, "Passwords don't match.", 'error');
                 return;
             }
             
             if (password.length < Config.auth.minPasswordLength) {
                 DOM.showStatus(
                     this.elements.authStatus, 
-                    `A senha deve ter no mínimo ${Config.auth.minPasswordLength} caracteres.`, 
+                    `Password must be at least ${Config.auth.minPasswordLength} characters.`, 
                     'error'
                 );
                 return;
@@ -188,7 +188,7 @@ const Auth = {
             const users = JSON.parse(localStorage.getItem(Config.storage.users) || '[]');
             
             if (users.some(u => u.email === email)) {
-                DOM.showStatus(this.elements.authStatus, "Este email já está registrado.", 'error');
+                DOM.showStatus(this.elements.authStatus, "This email is already registered.", 'error');
                 return;
             }
 
@@ -201,7 +201,7 @@ const Auth = {
 
             DOM.showStatus(
                 this.elements.authStatus, 
-                "Registro concluído! Redirecionando...", 
+                "Registration complete! Redirecting...", 
                 'success'
             );
             

@@ -108,13 +108,13 @@ const Chat = {
                     
                     if (!fullAnswer) {
                         // Show error only if no answer was received
-                        this._renderAnswer("Erro ao conectar com o servidor de streaming. Verifique a conexão e tente novamente.");
+                        this._renderAnswer("Error connecting to streaming server. Check your connection and try again.");
                     }
                     
                     if (this.elements.chatStatus) {
                         DOM.showStatus(
                             this.elements.chatStatus, 
-                            "Erro na conexão de streaming.", 
+                            "Streaming connection error.", 
                             'error',
                             Config.defaults.autoHideTimeout
                         );
@@ -127,12 +127,12 @@ const Chat = {
                 this.elements.questionInput.disabled = false;
                 this.elements.queryForm.querySelector('button').disabled = false;
                 
-                this._renderAnswer(`Erro ao iniciar a consulta: ${error.message}`);
+                this._renderAnswer(`Error starting the query: ${error.message}`);
                 
                 if (this.elements.chatStatus) {
                     DOM.showStatus(
                         this.elements.chatStatus, 
-                        `Erro: ${error.message}`, 
+                        `Error: ${error.message}`, 
                         'error',
                         Config.defaults.autoHideTimeout
                     );
@@ -157,8 +157,8 @@ const Chat = {
             
             const isHidden = DOM.toggle(content);
             e.target.textContent = isHidden 
-                ? 'Mostrar Processamento Interno' 
-                : 'Ocultar Processamento Interno';
+                ? 'Show Internal Processing' 
+                : 'Hide Internal Processing';
         });
     },
 
