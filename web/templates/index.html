@@ -8,8 +8,12 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Use type="module" to enable ES modules -->
+    <script type="module" src="/static/js/app.js"></script>
 </head>
-<body class="dark-mode"> <div id="auth-container" class="auth-container">
+<body class="dark-mode">
+    <!-- Auth Container -->
+    <div id="auth-container" class="auth-container">
         <div class="auth-content">
             <div class="auth-branding">
                 <i class="fas fa-brain fa-4x auth-logo"></i>
@@ -63,13 +67,14 @@
             </div>
              <div class="auth-dark-mode-toggle">
                 <label class="switch">
-                    <input type="checkbox" id="auth-dark-mode-switch" checked onchange="toggleDarkMode()">
+                    <input type="checkbox" id="auth-dark-mode-switch" checked>
                     <span class="slider round"></span>
                 </label>
             </div>
         </div>
     </div>
 
+    <!-- Main Container -->
     <div id="main-container" class="main-container hidden">
         <div class="sidebar">
             <div class="sidebar-header">
@@ -102,12 +107,12 @@
                         <i class="fas fa-filter"></i>
                         <select id="collection-select" class="top-nav-select">
                             <option value="all">Todas as Coleções</option>
-                            </select>
+                        </select>
                     </div>
                     <input type="search" id="top-nav-search" class="top-nav-search" placeholder="Pesquisar...">
                     <a href="/docs" class="top-nav-link" target="_blank" title="Documentação"><i class="fas fa-book"></i></a>
                     <label class="switch" title="Alternar Modo Escuro/Claro">
-                        <input type="checkbox" id="main-dark-mode-switch" checked onchange="toggleDarkMode()">
+                        <input type="checkbox" id="main-dark-mode-switch" checked>
                         <span class="slider round"></span>
                     </label>
                  </div>
@@ -155,21 +160,20 @@
                                         <option value="umap">UMAP</option>
                                         <option value="pca">PCA</option>
                                     </select>
-                                    <select id="visualization-switch" class="card-select" title="Tipo de Visualização" onchange="switchVisualization()">
+                                    <select id="visualization-switch" class="card-select" title="Tipo de Visualização">
                                         <option value="scatter">Scatter Plot</option>
                                         <option value="bar">Bar Chart</option>
                                         <option value="table">Table View</option>
                                     </select>
-                                    <button class="btn-icon" onclick="exportData('csv')" title="Exportar CSV"><i class="fas fa-file-csv"></i></button>
-                                    <button class="btn-icon" onclick="exportData('json')" title="Exportar JSON"><i class="fas fa-file-code"></i></button>
+                                    <button class="btn-icon" title="Exportar CSV"><i class="fas fa-file-csv"></i></button>
+                                    <button class="btn-icon" title="Exportar JSON"><i class="fas fa-file-code"></i></button>
                                 </div>
                             </div>
                             <div class="card-body">
                                 <div id="vector-visualization" class="vector-space-container" style="height:350px;">
                                     <div class="loading-overlay hidden"><div class="spinner"></div></div>
-                                    </div>
-                                <div class="legend-container">
-                                    </div>
+                                </div>
+                                <div class="legend-container"></div>
                             </div>
                         </div>
 
@@ -182,7 +186,7 @@
                                          <input type="text" id="similarity-query" class="search-input" placeholder="Digite um termo...">
                                      </div>
                                     <button id="similarity-search-btn" class="btn btn-primary">Buscar</button>
-                                    </div>
+                                </div>
                                 <div id="similarity-results" class="similarity-results scrollable">
                                      <p class="placeholder-text">Resultados da busca aparecerão aqui.</p>
                                 </div>
@@ -219,6 +223,7 @@
                             </form>
                         </div>
                     </div>
+                    <div id="chat-status" class="status hidden"></div>
                 </div>
 
                 <div id="ingest-page" class="page-content">
@@ -246,7 +251,7 @@
                     <header class="page-header"><h2><i class="fas fa-database"></i> Gerenciar Coleções</h2></header>
                     <div class="page-body">
                         <p class="placeholder-text">Funcionalidade de gerenciamento de coleções (listar, excluir, etc.) a ser implementada.</p>
-                        </div>
+                    </div>
                 </div>
 
                 <div id="profile-page" class="page-content">
@@ -284,89 +289,17 @@
                                 <button type="submit" class="btn btn-primary">Alterar Senha</button>
                             </form>
                         </div>
-                        <div id="profile-status" class="status profile-status-full"></div> </div>
+                        <div id="profile-status" class="status profile-status-full"></div> 
+                    </div>
                 </div>
-
-            </div> </div> </div> <div id="modal-container" class="modal-overlay hidden">
+            </div>
         </div>
-
+    </div>
+    
+    <div id="modal-container" class="modal-overlay hidden"></div>
     <div id="visualization-tooltip" class="tooltip-container"></div>
 
-    <script src="/static/js/main.js"></script>
+    <!-- For backward compatibility, load visualization-specific code separately -->
     <script src="/static/js/visualizations.js"></script>
-    <script>
-        // Improved dark mode toggle function
-        function toggleDarkMode() {
-            const isDarkMode = document.body.classList.toggle('dark-mode');
-            console.log("Dark mode toggled:", isDarkMode ? "ON" : "OFF");
-            
-            // Ensure both toggles reflect the state
-            const authSwitch = document.getElementById('auth-dark-mode-switch');
-            const mainSwitch = document.getElementById('main-dark-mode-switch');
-            
-            if (authSwitch) authSwitch.checked = isDarkMode;
-            if (mainSwitch) mainSwitch.checked = isDarkMode;
-            
-            // Persist preference
-            localStorage.setItem('darkMode', isDarkMode ? 'enabled' : 'disabled');
-            
-            // Trigger visualization updates if dashboard is active
-            if (document.getElementById('dashboard-page').classList.contains('active')) {
-                console.log("Dashboard is active, updating visualizations");
-                
-                // Update Chart.js chart if exists
-                if (typeof window.visualizationState !== 'undefined' && 
-                    window.visualizationState.chartInstance) {
-                    console.log("Updating Chart.js chart");
-                    try {
-                        // Destroy and recreate the chart with new theme colors
-                        window.visualizationState.chartInstance.destroy();
-                        window.createCollectionDistributionChart();
-                    } catch (err) {
-                        console.error("Error updating chart:", err);
-                    }
-                }
-                
-                // Update D3 visualization if data exists
-                if (typeof window.visualizationState !== 'undefined' && 
-                    window.visualizationState.currentData &&
-                    window.visualizationState.currentData.length > 0) {
-                    console.log("Updating D3 visualization");
-                    try {
-                        // Refresh the current visualization with new theme colors
-                        window.updateVisualizationDisplay();
-                    } catch (err) {
-                        console.error("Error updating D3 visualization:", err);
-                    }
-                }
-            }
-        }
-
-        // Apply persisted dark mode preference on load
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("DOM loaded, checking dark mode preference");
-            const darkModePreference = localStorage.getItem('darkMode');
-            
-            if (darkModePreference === 'disabled') {
-                console.log("Dark mode preference: disabled");
-                document.body.classList.remove('dark-mode');
-                const authSwitch = document.getElementById('auth-dark-mode-switch');
-                if (authSwitch) authSwitch.checked = false;
-                
-                const mainSwitch = document.getElementById('main-dark-mode-switch');
-                if (mainSwitch) mainSwitch.checked = false;
-            } else {
-                console.log("Dark mode preference: enabled (default)");
-                // Default is dark, ensure body has the class
-                document.body.classList.add('dark-mode');
-                
-                const authSwitch = document.getElementById('auth-dark-mode-switch');
-                if (authSwitch) authSwitch.checked = true;
-                
-                const mainSwitch = document.getElementById('main-dark-mode-switch');
-                if (mainSwitch) mainSwitch.checked = true;
-            }
-        });
-    </script>
 </body>
 </html>

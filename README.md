@@ -14,6 +14,7 @@ This project implements a RAG (Retrieval-Augmented Generation) system using Go, 
 - Supports streaming responses for a more interactive experience
 - Renders AI internal reasoning wrapped in `<think>` tags as expandable/collapsible sections to keep answers organized
 - Allows per-PDF collection creation for more targeted retrieval
+- Provides a web interface for document ingestion, querying and visualization
 
 ## Prerequisites
 
@@ -194,6 +195,40 @@ The main configurations are defined in the [`cmd/ragapp/main.go`](cmd/ragapp/mai
 | chunkOverlap | Overlap between chunks | 100 |
 
 To change these configurations, edit the [`cmd/ragapp/main.go`](cmd/ragapp/main.go) file before compiling or running.
+
+## Using the Web Server
+
+In addition to the command-line interface, this project includes a web server that provides a graphical user interface for interacting with the RAG system.
+
+### Starting the Web Server
+
+```bash
+# Run the web server
+go run cmd/webserver/main.go
+
+# Or if compiled
+./webserver
+```
+
+The server will start on port 8020 by default. You can access the web interface by visiting http://localhost:8020 in your browser.
+
+### Web Interface Features
+
+The web interface provides several key features:
+
+1. **Document Ingestion**: Upload PDF documents through a drag-and-drop interface. You can choose to create individual collections per PDF or add them to a single collection.
+
+2. **Chat Interface**: Ask questions about your documents and receive generated answers based on the content.
+
+3. **Vector Visualizations**: View visual representations of your document vectors using techniques like t-SNE, UMAP, or PCA to understand document relationships.
+
+4. **Collection Management**: Browse and manage your vector collections.
+
+5. **Similarity Search**: Find documents similar to a text query and explore related content.
+
+### Configuration
+
+The web server's configuration options (such as port, model names, and vector dimensions) can be found at the top of the `cmd/webserver/main.go` file. Modify these constants to customize your server settings.
 
 ## How It Works
 
